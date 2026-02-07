@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Tennis Team Scheduler - Admin Enhanced</title>
+<title>My Tennis Scheduler - Admin Enhanced</title>
 <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -212,14 +212,9 @@
 <!-- Login Screen -->
 <div class="login-container" id="loginScreen">
 <div class="login-card">
-<h2 style="text-align: center; margin-bottom: 30px; color: #667eea;">🎾 Tennis Team Scheduler</h2>
-<div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-size: 14px;">
-<strong>Demo Account:</strong><br/>
-                Email: admin@tennis.com<br/>
-                Password: admin123
-            </div>
-<input class="form-control" id="email" placeholder="Email" type="email" value="admin@tennis.com"/>
-<input class="form-control" id="password" placeholder="Password" type="password" value="admin123"/>
+<h2 style="text-align: center; margin-bottom: 30px; color: #667eea;">🎾 My Tennis Scheduler</h2>
+<input class="form-control" id="email" placeholder="Email" type="email"/>
+<input class="form-control" id="password" placeholder="Password" type="password"/>
 <button class="btn" onclick="login()" style="width: 100%;">Sign In</button>
 <button class="btn btn-secondary" onclick="showRegister()" style="width: 100%;">Create Account</button>
 </div>
@@ -241,7 +236,7 @@
 <div class="container">
 <div class="card">
 <div class="header">
-<div class="logo">🎾 Tennis Team Scheduler</div>
+<div class="logo">🎾 My Tennis Scheduler</div>
 <div>
 <span id="welcomeUser">Welcome!</span>
 <button class="btn" onclick="showProfile()">Profile</button>
@@ -332,7 +327,7 @@
 <!-- Regular Schedule View -->
 <div class="card" id="scheduleView">
 <div class="header">
-<h3>Team Schedule</h3>
+<h3>My Schedule</h3>
 <div id="regularControls">
 <button class="btn" onclick="showCreateEvent()">Add Event</button>
 </div>
@@ -405,12 +400,18 @@
 <label class="form-label">Court Location</label>
 <select class="form-control" id="courtLocation">
 <option value="">Select Court...</option>
-<option value="1">Central Park Tennis Center - Court 1</option>
-<option value="2">Central Park Tennis Center - Court 2</option>
-<option value="3">Riverside Tennis Club - Court A</option>
-<option value="4">Riverside Tennis Club - Court B</option>
-<option value="5">Municipal Courts - Court 1</option>
-<option value="6">Municipal Courts - Court 2</option>
+<option value="1">Apex Tennis Center - Indoor Court 1</option>
+<option value="2">Apex Tennis Center - Indoor Court 2</option>
+<option value="3">Apex Tennis Center - Outdoor Court A</option>
+<option value="4">Apex Tennis Center - Outdoor Court B</option>
+<option value="5">Arvada Tennis Center - Court 1</option>
+<option value="6">Arvada Tennis Center - Court 2</option>
+<option value="7">North Jeffco Park - Court 1</option>
+<option value="8">North Jeffco Park - Court 2</option>
+<option value="9">Majestic View Park - Court 1</option>
+<option value="10">Clear Creek Valley Park - Court 1</option>
+<option value="11">Clear Creek Valley Park - Court 2</option>
+<option value="12">NJTC Club Courts - Court A</option>
 </select>
 </div>
 </div>
@@ -513,7 +514,8 @@
         let currentDate = new Date();
         let currentAdminSection = 'dashboard';
         let events = [];
-        let users = [
+        // Load users from localStorage or use defaults
+        let users = JSON.parse(localStorage.getItem('tennisUsers')) || [
             {
                 id: 1,
                 firstName: 'Admin',
@@ -552,15 +554,25 @@
             }
         ];
 
-        // Sample events
-        events = [
+        // Save users to localStorage whenever users array changes
+        function saveUsers() {
+            localStorage.setItem('tennisUsers', JSON.stringify(users));
+        }
+
+        // Save events to localStorage whenever events array changes
+        function saveEvents() {
+            localStorage.setItem('tennisEvents', JSON.stringify(events));
+        }
+
+        // Load events from localStorage or use defaults
+        events = JSON.parse(localStorage.getItem('tennisEvents')) || [
             {
                 id: 1,
                 type: 'match',
                 title: 'vs Eagles Tennis Team',
                 date: '2026-04-08',
                 time: '18:00',
-                court: 'Central Park Tennis Center - Court 1',
+                court: 'Apex Tennis Center - Indoor Court 1',
                 opponent: 'Eagles Tennis Team',
                 description: 'Season opener',
                 rsvps: { 1: 'yes', 2: 'maybe', 3: 'pending' }
@@ -571,7 +583,7 @@
                 title: 'Team Practice',
                 date: '2026-04-05',
                 time: '10:00',
-                court: 'Riverside Tennis Club - Court A',
+                court: 'Arvada Tennis Center - Court 1',
                 description: 'Pre-season practice',
                 rsvps: { 1: 'yes', 2: 'yes', 3: 'no' }
             },
@@ -581,7 +593,7 @@
                 title: 'vs Hawks Tennis Club',
                 date: '2026-04-15',
                 time: '18:00',
-                court: 'Municipal Courts - Court 1',
+                court: 'Clear Creek Valley Park - Court 1',
                 opponent: 'Hawks Tennis Club',
                 description: 'League match',
                 rsvps: { 1: 'pending', 2: 'pending', 3: 'pending' }
@@ -590,12 +602,18 @@
 
         // Court and opponent data
         const courts = {
-            1: 'Central Park Tennis Center - Court 1',
-            2: 'Central Park Tennis Center - Court 2',
-            3: 'Riverside Tennis Club - Court A',
-            4: 'Riverside Tennis Club - Court B',
-            5: 'Municipal Courts - Court 1',
-            6: 'Municipal Courts - Court 2'
+            1: 'Apex Tennis Center - Indoor Court 1',
+            2: 'Apex Tennis Center - Indoor Court 2',
+            3: 'Apex Tennis Center - Outdoor Court A',
+            4: 'Apex Tennis Center - Outdoor Court B',
+            5: 'Arvada Tennis Center - Court 1',
+            6: 'Arvada Tennis Center - Court 2',
+            7: 'North Jeffco Park - Court 1',
+            8: 'North Jeffco Park - Court 2',
+            9: 'Majestic View Park - Court 1',
+            10: 'Clear Creek Valley Park - Court 1',
+            11: 'Clear Creek Valley Park - Court 2',
+            12: 'NJTC Club Courts - Court A'
         };
 
         const opponents = {
@@ -693,6 +711,7 @@
             };
             
             users.push(newUser);
+            saveUsers(); // Save users to localStorage
             currentUser = newUser;
             localStorage.setItem('tennisUser', JSON.stringify(newUser));
             document.getElementById('welcomeUser').textContent = `Welcome, ${newUser.firstName}!`;
@@ -861,6 +880,7 @@
                     
                     showNotification('User updated successfully');
                 }
+                saveUsers(); // Save users to localStorage
             } else {
                 // Create new user
                 if (!password) {
@@ -887,6 +907,7 @@
                 };
                 
                 users.push(newUser);
+                saveUsers(); // Save users to localStorage
                 showNotification('User created successfully');
             }
             
@@ -902,6 +923,7 @@
             const newPassword = prompt(`Enter new password for ${user.firstName} ${user.lastName}:`);
             if (newPassword && newPassword.trim()) {
                 user.password = newPassword.trim();
+                saveUsers(); // Save users to localStorage
                 showNotification(`Password reset for ${user.firstName} ${user.lastName}`);
             }
         }
@@ -912,6 +934,7 @@
             
             if (confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?`)) {
                 users = users.filter(u => u.id !== userId);
+                saveUsers(); // Save users to localStorage
                 renderUserTable();
                 updateAdminStats();
                 showNotification('User deleted');
@@ -1030,6 +1053,7 @@
                     
                     showNotification('Event updated successfully');
                 }
+                saveEvents(); // Save events to localStorage
             } else {
                 // Create new event
                 const newEvent = {
@@ -1045,6 +1069,7 @@
                 };
                 
                 events.push(newEvent);
+                saveEvents(); // Save events to localStorage
                 showNotification('Event created successfully');
             }
             
@@ -1068,6 +1093,7 @@
             
             if (confirm(`Are you sure you want to delete "${event.title}"?`)) {
                 events = events.filter(e => e.id !== eventId);
+                saveEvents(); // Save events to localStorage
                 renderEventTable();
                 renderCalendar();
                 updateStats();
@@ -1251,6 +1277,7 @@
             const event = events.find(e => e.id === eventId);
             if (event) {
                 event.rsvps[currentUser.id] = status;
+                saveEvents(); // Save events to localStorage
                 showNotification(`RSVP updated: ${status}`);
                 updateStats();
                 updateAdminStats();
@@ -1263,6 +1290,7 @@
         function deleteEvent(eventId) {
             if (confirm('Delete this event?')) {
                 events = events.filter(e => e.id !== eventId);
+                saveEvents(); // Save events to localStorage
                 closeModal();
                 renderCalendar();
                 updateStats();
@@ -1321,6 +1349,7 @@
             const userIndex = users.findIndex(u => u.id === currentUser.id);
             if (userIndex !== -1) {
                 users[userIndex] = currentUser;
+                saveUsers(); // Save users to localStorage
             }
             
             localStorage.setItem('tennisUser', JSON.stringify(currentUser));
