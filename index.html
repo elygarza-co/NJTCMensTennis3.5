@@ -487,6 +487,48 @@
 <label class="form-label">Description/Notes</label>
 <textarea class="form-control" id="eventDescription" placeholder="Description/Notes" rows="3"></textarea>
 </div>
+<div class="form-group" id="playerAssignmentSection">
+<label class="form-label">Player Assignments (for matches)</label>
+<div id="playerAssignments">
+<div class="form-row">
+<div>
+<label class="form-label">#1 Singles</label>
+<select class="form-control" id="position1Singles">
+<option value="">Select Player...</option>
+</select>
+</div>
+<div>
+<label class="form-label">#2 Singles</label>
+<select class="form-control" id="position2Singles">
+<option value="">Select Player...</option>
+</select>
+</div>
+</div>
+<div class="form-row">
+<div>
+<label class="form-label">#1 Doubles</label>
+<select class="form-control" id="position1Doubles">
+<option value="">Select Player...</option>
+</select>
+</div>
+<div>
+<label class="form-label">#2 Doubles</label>
+<select class="form-control" id="position2Doubles">
+<option value="">Select Player...</option>
+</select>
+</div>
+</div>
+<div class="form-row">
+<div>
+<label class="form-label">#3 Doubles</label>
+<select class="form-control" id="position3Doubles">
+<option value="">Select Player...</option>
+</select>
+</div>
+<div></div>
+</div>
+</div>
+</div>
 <button class="btn" id="saveEventBtn" onclick="saveEvent()">Create Event</button>
 </div>
 </div>
@@ -638,6 +680,9 @@
 <input class="form-control" id="profileEmail" placeholder="Email" type="email"/>
 <textarea class="form-control" id="preferredDays" placeholder="Preferred match days" rows="2"></textarea>
 <textarea class="form-control" id="unavailableDates" placeholder="Unavailable dates" rows="2"></textarea>
+<div id="scheduledMatches" style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+<!-- Scheduled matches will be populated here -->
+</div>
 <button class="btn" onclick="updateProfile()">Update Profile</button>
 </div>
 </div>
@@ -995,12 +1040,13 @@
         }
 
         function updateModeButtons() {
+            const modeSwitcher = document.getElementById('modeSwitcher');
             if (!currentUser || !currentUser.isAdmin) {
-                document.getElementById('modeSwitcher').classList.add('hidden');
+                modeSwitcher.classList.add('hidden');
                 return;
             }
             
-            document.getElementById('modeSwitcher').classList.remove('hidden');
+            modeSwitcher.classList.remove('hidden');
             const currentMode = localStorage.getItem('loginMode') || 'player';
             
             if (currentMode === 'admin') {
@@ -1010,6 +1056,34 @@
                 document.getElementById('playerModeBtn').style.background = '#667eea';
                 document.getElementById('adminModeBtn').style.background = '#6c757d';
             }
+        }
+
+        // Get user's scheduled matches
+        function getUserScheduledMatches(userId) {
+            const userMatches = [];
+            const now = new Date();
+            
+            events.forEach(event => {
+                if (event.type === 'match' && event.playerAssignments && new Date(event.date) >= now) {
+                    Object.keys(event.playerAssignments).forEach(position => {
+                        if (event.playerAssignments[position] === userId) {
+                            const positionNames = {
+                                '1Singles': '#1 Singles',
+                                '2Singles': '#2 Singles',
+                                '1Doubles': '#1 Doubles',
+                                '2Doubles': '#2 Doubles',
+                                '3Doubles': '#3 Doubles'
+                            };
+                            userMatches.push({
+                                event: event,
+                                position: positionNames[position]
+                            });
+                        }
+                    });
+                }
+            });
+            
+            return userMatches.sort((a, b) => new Date(a.event.date) - new Date(b.event.date));
         }
 
         function showLogin() {
@@ -1512,6 +1586,37 @@
             });
         }
 
+        function updatePlayerDropdowns() {
+            const positions = ['position1Singles', 'position2Singles', 'position1Doubles', 'position2Doubles', 'position3Doubles'];
+            
+            positions.forEach(positionId => {
+                const select = document.getElementById(positionId);
+                if (select) {
+                    select.innerHTML = '<option value="">Select Player...</option>';
+                    
+                    users.filter(u => !u.isAdmin || u.availableMatches).forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        option.textContent = `${user.firstName} ${user.lastName}`;
+                        select.appendChild(option);
+                    });
+                }
+            });
+        }
+
+        // Show/hide player assignments based on event type
+        function togglePlayerAssignments() {
+            const eventType = document.getElementById('eventType').value;
+            const assignmentSection = document.getElementById('playerAssignmentSection');
+            
+            if (eventType === 'match') {
+                assignmentSection.style.display = 'block';
+                updatePlayerDropdowns();
+            } else {
+                assignmentSection.style.display = 'none';
+            }
+        }
+
         // Historical update confirmation system
         let pendingHistoricalUpdate = null;
 
@@ -1631,7 +1736,15 @@
             document.getElementById('opponent').value = '';
             document.getElementById('homeAway').value = '';
             document.getElementById('eventDescription').value = '';
+            
+            // Clear player assignments
+            ['position1Singles', 'position2Singles', 'position1Doubles', 'position2Doubles', 'position3Doubles'].forEach(id => {
+                const select = document.getElementById(id);
+                if (select) select.value = '';
+            });
+            
             document.getElementById('saveEventBtn').textContent = 'Create Event';
+            togglePlayerAssignments(); // Show assignments for match type
             document.getElementById('createEventModal').classList.add('show');
         }
 
@@ -1655,6 +1768,21 @@
             
             document.getElementById('homeAway').value = event.homeAway || '';
             document.getElementById('eventDescription').value = event.description || '';
+            
+            // Show/hide player assignments based on event type
+            togglePlayerAssignments();
+            
+            // Populate player assignments if they exist
+            if (event.playerAssignments) {
+                Object.keys(event.playerAssignments).forEach(position => {
+                    const selectId = 'position' + position;
+                    const select = document.getElementById(selectId);
+                    if (select) {
+                        select.value = event.playerAssignments[position];
+                    }
+                });
+            }
+            
             document.getElementById('saveEventBtn').textContent = 'Update Event';
             document.getElementById('createEventModal').classList.add('show');
         }
@@ -1672,6 +1800,25 @@
             if (!date) {
                 showNotification('Please select a date', 'error');
                 return;
+            }
+            
+            // Get player assignments for matches
+            let playerAssignments = {};
+            if (type === 'match') {
+                const positions = {
+                    '1Singles': document.getElementById('position1Singles').value,
+                    '2Singles': document.getElementById('position2Singles').value,
+                    '1Doubles': document.getElementById('position1Doubles').value,
+                    '2Doubles': document.getElementById('position2Doubles').value,
+                    '3Doubles': document.getElementById('position3Doubles').value
+                };
+                
+                // Only include assigned positions
+                Object.keys(positions).forEach(pos => {
+                    if (positions[pos]) {
+                        playerAssignments[pos] = parseInt(positions[pos]);
+                    }
+                });
             }
             
             // Get court and opponent display names
@@ -1702,6 +1849,7 @@
                     events[eventIndex].opponent = opponent;
                     events[eventIndex].homeAway = homeAway;
                     events[eventIndex].description = description;
+                    events[eventIndex].playerAssignments = playerAssignments;
                     
                     showNotification('Event updated successfully');
                 }
@@ -1718,6 +1866,7 @@
                     opponent,
                     homeAway,
                     description,
+                    playerAssignments,
                     rsvps: {}
                 };
                 
@@ -1911,6 +2060,28 @@
                 </div>
             ` : '';
             
+            // Generate player assignments display
+            let playerAssignmentsDisplay = '';
+            if (event.type === 'match' && event.playerAssignments && Object.keys(event.playerAssignments).length > 0) {
+                const positionNames = {
+                    '1Singles': '#1 Singles',
+                    '2Singles': '#2 Singles',
+                    '1Doubles': '#1 Doubles',
+                    '2Doubles': '#2 Doubles',
+                    '3Doubles': '#3 Doubles'
+                };
+                
+                playerAssignmentsDisplay = '<div style="margin: 15px 0;"><h4>Player Lineup:</h4>';
+                Object.keys(event.playerAssignments).forEach(position => {
+                    const userId = event.playerAssignments[position];
+                    const user = users.find(u => u.id === userId);
+                    if (user) {
+                        playerAssignmentsDisplay += `<p><strong>${positionNames[position]}:</strong> ${user.firstName} ${user.lastName}</p>`;
+                    }
+                });
+                playerAssignmentsDisplay += '</div>';
+            }
+            
             document.getElementById('eventContent').innerHTML = `
                 ${homeAwayBanner}
                 <p><strong>Type:</strong> ${event.type}</p>
@@ -1921,12 +2092,14 @@
                 ${event.homeAway ? `<p><strong>Game Type:</strong> ${event.homeAway === 'Home' ? '🏠 Home' : '✈️ Away'}</p>` : ''}
                 <p><strong>Description:</strong> ${event.description || 'None'}</p>
                 
+                ${playerAssignmentsDisplay}
+                
                 ${rsvpSection}
                 
                 ${currentUser.isAdmin ? `
                     <div style="margin-top: 20px;">
                         <button onclick="editEvent(${event.id}); closeModal();" class="btn">Edit Event</button>
-                        <button onclick="deleteEventAdmin(${event.id}); closeModal();" class="btn btn-danger">Delete Event</button>
+                        <button onclick="deleteEventAdmin(${event.id}); closeModal();" class="btn btn-danger btn-small">Delete Event</button>
                     </div>
                 ` : ''}
             `;
@@ -1997,6 +2170,21 @@
             document.getElementById('profileEmail').value = currentUser.email;
             document.getElementById('preferredDays').value = currentUser.preferredDays || '';
             document.getElementById('unavailableDates').value = currentUser.unavailableDates || '';
+            
+            // Show scheduled matches
+            const scheduledMatches = getUserScheduledMatches(currentUser.id);
+            const matchesContainer = document.getElementById('scheduledMatches');
+            if (matchesContainer) {
+                if (scheduledMatches.length > 0) {
+                    matchesContainer.innerHTML = '<h4>Your Scheduled Matches:</h4>' + 
+                        scheduledMatches.map(match => 
+                            `<p><strong>${match.position}</strong> - ${match.event.title} on ${new Date(match.event.date).toLocaleDateString()}</p>`
+                        ).join('');
+                } else {
+                    matchesContainer.innerHTML = '<h4>Your Scheduled Matches:</h4><p>No upcoming matches assigned</p>';
+                }
+            }
+            
             document.getElementById('profileModal').classList.add('show');
         }
 
@@ -2142,6 +2330,14 @@
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('modal')) {
                 e.target.classList.remove('show');
+            }
+        });
+
+        // Add event listener for event type changes
+        document.addEventListener('DOMContentLoaded', function() {
+            const eventTypeSelect = document.getElementById('eventType');
+            if (eventTypeSelect) {
+                eventTypeSelect.addEventListener('change', togglePlayerAssignments);
             }
         });
     </script>
