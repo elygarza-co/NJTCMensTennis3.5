@@ -5,7 +5,13 @@
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>My Tennis Scheduler - Team Management</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f5f5f5; }
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%),
+        url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80') center/cover no-repeat;
+      min-height: 100vh;
+      background-attachment: fixed;
+    }
     .container { max-width: 1000px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 30px; }
     .hidden { display: none; }
     .btn { background: #667eea; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin: 5px; }
@@ -20,10 +26,23 @@
     th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
     th { background: #f8f9fa; font-weight: bold; }
     tr:hover { background: #f5f5f5; }
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-    .modal.show { display: flex; }
-    .modal-content { background: #fff; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%; }
-    .modal-content h3 { margin-top: 0; }
+    .login-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .login-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      max-width: 400px;
+      width: 100%;
+    }
+    .login-card h2 { color: #667eea; }
   </style>
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -46,17 +65,19 @@
   </script>
 </head>
 <body>
-  <div class="container">
-    <!-- Login/Register -->
-    <div id="loginScreen">
-      <h2>🎾 My Tennis Scheduler</h2>
+  <!-- Login/Register -->
+  <div class="login-container" id="loginScreen">
+    <div class="login-card">
+      <h2 style="text-align: center; margin-bottom: 30px;">🎾 My Tennis Scheduler</h2>
       <input class="form-control" id="email" placeholder="Email" type="email"/>
       <input class="form-control" id="password" placeholder="Password" type="password"/>
       <button class="btn" onclick="login()">Sign In</button>
       <button class="btn btn-secondary" onclick="showRegister()">Create Account</button>
     </div>
-    <div id="registerScreen" class="hidden">
-      <h2>Join the Team</h2>
+  </div>
+  <div class="login-container hidden" id="registerScreen">
+    <div class="login-card">
+      <h2 style="text-align: center; margin-bottom: 30px;">Join the Team</h2>
       <input class="form-control" id="regFirstName" placeholder="First Name" type="text"/>
       <input class="form-control" id="regLastName" placeholder="Last Name" type="text"/>
       <input class="form-control" id="regEmail" placeholder="Email" type="email"/>
@@ -64,302 +85,68 @@
       <button class="btn" onclick="register()">Create Account</button>
       <button class="btn btn-secondary" onclick="showLogin()">Back to Login</button>
     </div>
-    <!-- Main App -->
-    <div id="mainApp" class="hidden">
-      <h2>🎾 My Tennis Scheduler</h2>
-      <button class="btn btn-secondary" onclick="logout()">Logout</button>
-      <hr/>
-      <!-- Events Section -->
-      <h3>Events</h3>
-      <button class="btn" onclick="showEventModal()">Add Event</button>
-      <table>
-        <thead>
-          <tr>
-            <th>Title</th><th>Date</th><th>Time</th><th>Court</th><th>Opponent</th><th>Description</th><th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="eventTableBody"></tbody>
-      </table>
-      <!-- Courts Section -->
-      <h3>Courts</h3>
-      <button class="btn" onclick="showCourtModal()">Add Court</button>
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th><th>Location</th><th>Type</th><th>Notes</th><th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="courtTableBody"></tbody>
-      </table>
-      <!-- Opponents Section -->
-      <h3>Opponents</h3>
-      <button class="btn" onclick="showOpponentModal()">Add Opponent</button>
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th><th>Contact</th><th>Email</th><th>Phone</th><th>League</th><th>Notes</th><th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="opponentTableBody"></tbody>
-      </table>
-    </div>
-    <!-- Event Modal -->
-    <div class="modal" id="eventModal">
-      <div class="modal-content">
-        <h3 id="eventModalTitle">Add Event</h3>
-        <input class="form-control" id="eventTitle" placeholder="Title" type="text"/>
-        <input class="form-control" id="eventDate" placeholder="Date" type="date"/>
-        <input class="form-control" id="eventTime" placeholder="Time" type="time"/>
-        <input class="form-control" id="eventCourt" placeholder="Court" type="text"/>
-        <input class="form-control" id="eventOpponent" placeholder="Opponent" type="text"/>
-        <textarea class="form-control" id="eventDescription" placeholder="Description"></textarea>
-        <button class="btn" id="saveEventBtn" onclick="saveEvent()">Save</button>
-        <button class="btn btn-secondary" onclick="closeEventModal()">Cancel</button>
-        <input type="hidden" id="eventId"/>
-      </div>
-    </div>
-    <!-- Court Modal -->
-    <div class="modal" id="courtModal">
-      <div class="modal-content">
-        <h3 id="courtModalTitle">Add Court</h3>
-        <input class="form-control" id="courtName" placeholder="Court Name" type="text"/>
-        <input class="form-control" id="courtLocation" placeholder="Location" type="text"/>
-        <select class="form-control" id="courtType">
-          <option value="Indoor">Indoor</option>
-          <option value="Outdoor">Outdoor</option>
-          <option value="Clay">Clay</option>
-          <option value="Hard">Hard Court</option>
-          <option value="Grass">Grass</option>
-        </select>
-        <textarea class="form-control" id="courtNotes" placeholder="Notes"></textarea>
-        <button class="btn" onclick="saveCourt()">Save</button>
-        <button class="btn btn-secondary" onclick="closeCourtModal()">Cancel</button>
-        <input type="hidden" id="courtId"/>
-      </div>
-    </div>
-    <!-- Opponent Modal -->
-    <div class="modal" id="opponentModal">
-      <div class="modal-content">
-        <h3 id="opponentModalTitle">Add Opponent</h3>
-        <input class="form-control" id="opponentName" placeholder="Name" type="text"/>
-        <input class="form-control" id="opponentContact" placeholder="Contact" type="text"/>
-        <input class="form-control" id="opponentEmail" placeholder="Email" type="email"/>
-        <input class="form-control" id="opponentPhone" placeholder="Phone" type="text"/>
-        <input class="form-control" id="opponentLeague" placeholder="League" type="text"/>
-        <textarea class="form-control" id="opponentNotes" placeholder="Notes"></textarea>
-        <button class="btn" id="saveOpponentBtn" onclick="saveOpponent()">Save</button>
-        <button class="btn btn-secondary" onclick="closeOpponentModal()">Cancel</button>
-        <input type="hidden" id="opponentId"/>
-      </div>
-    </div>
-    <!-- Notification -->
-    <div class="notification" id="notification"></div>
   </div>
-  <script>
-    // Global state
-    let currentUser = null;
-    let events = [];
-    let courts = [];
-    let opponents = [];
-
-    // UI helpers
-    function show(id) {
-      document.getElementById('loginScreen').classList.add('hidden');
-      document.getElementById('registerScreen').classList.add('hidden');
-      document.getElementById('mainApp').classList.add('hidden');
-      if (id) document.getElementById(id).classList.remove('hidden');
-    }
-    function showNotification(message, type = 'success') {
-      const notification = document.getElementById('notification');
-      notification.textContent = message;
-      notification.className = `notification ${type} show`;
-      setTimeout(() => { notification.classList.remove('show'); }, 3000);
-    }
-    function showRegister() { show('registerScreen'); }
-    function showLogin() { show('loginScreen'); }
-
-    // Auth
-    function register() {
-      const firstName = document.getElementById('regFirstName').value;
-      const lastName = document.getElementById('regLastName').value;
-      const email = document.getElementById('regEmail').value.trim().toLowerCase();
-      const password = document.getElementById('regPassword').value;
-      if (!firstName || !lastName || !email || !password) {
-        showNotification('Please fill all fields', 'error');
-        return;
-      }
-      auth.createUserWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          return db.collection('users').doc(userCredential.user.uid).set({
-            firstName, lastName, email
-          });
-        })
-        .then(() => {
-          showNotification('Account created!');
-          show('mainApp');
-          fetchAppData();
-        })
-        .catch((error) => {
-          showNotification(error.message, 'error');
-        });
-    }
-    function login() {
-      const email = document.getElementById('email').value.trim().toLowerCase();
-      const password = document.getElementById('password').value;
-      auth.signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          currentUser = userCredential.user;
-          show('mainApp');
-          fetchAppData();
-        })
-        .catch((error) => {
-          showNotification(error.message, 'error');
-        });
-    }
-    function logout() {
-      auth.signOut().then(() => {
-        currentUser = null;
-        show('loginScreen');
-        showNotification('Logged out');
-      });
-    }
-
-    // App Data Fetch
-    function fetchAppData() {
-      fetchEvents();
-      fetchCourts();
-      fetchOpponents();
-    }
-
-    // EVENTS CRUD
-    function fetchEvents() {
-      db.collection('events').orderBy('date').get().then(snapshot => {
-        events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderEventTable();
-      });
-    }
-    function showEventModal(event = null) {
-      document.getElementById('eventModal').classList.add('show');
-      if (event) {
-        document.getElementById('eventModalTitle').textContent = 'Edit Event';
-        document.getElementById('eventTitle').value = event.title || '';
-        document.getElementById('eventDate').value = event.date || '';
-        document.getElementById('eventTime').value = event.time || '';
-        document.getElementById('eventCourt').value = event.court || '';
-        document.getElementById('eventOpponent').value = event.opponent || '';
-        document.getElementById('eventDescription').value = event.description || '';
-        document.getElementById('eventId').value = event.id || '';
-      } else {
-        document.getElementById('eventModalTitle').textContent = 'Add Event';
-        document.getElementById('eventTitle').value = '';
-        document.getElementById('eventDate').value = '';
-        document.getElementById('eventTime').value = '';
-        document.getElementById('eventCourt').value = '';
-        document.getElementById('eventOpponent').value = '';
-        document.getElementById('eventDescription').value = '';
-        document.getElementById('eventId').value = '';
-      }
-    }
-    function closeEventModal() {
-      document.getElementById('eventModal').classList.remove('show');
-    }
-    function saveEvent() {
-      const title = document.getElementById('eventTitle').value;
-      const date = document.getElementById('eventDate').value;
-      const time = document.getElementById('eventTime').value;
-      const court = document.getElementById('eventCourt').value;
-      const opponent = document.getElementById('eventOpponent').value;
-      const description = document.getElementById('eventDescription').value;
-      const id = document.getElementById('eventId').value;
-      const eventData = { title, date, time, court, opponent, description };
-      if (id) {
-        db.collection('events').doc(id).update(eventData)
-          .then(() => {
-            showNotification('Event updated!');
-            fetchEvents();
-            closeEventModal();
-          })
-          .catch((error) => {
-            showNotification(error.message, 'error');
-          });
-      } else {
-        db.collection('events').add(eventData)
-          .then(() => {
-            showNotification('Event created!');
-            fetchEvents();
-            closeEventModal();
-          })
-          .catch((error) => {
-            showNotification(error.message, 'error');
-          });
-      }
-    }
-    function editEvent(id) {
-      const event = events.find(e => e.id === id);
-      if (event) showEventModal(event);
-    }
-    function removeEvent(id) {
-      if (confirm('Delete this event?')) {
-        db.collection('events').doc(id).delete()
-          .then(() => {
-            showNotification('Event deleted!');
-            fetchEvents();
-          })
-          .catch((error) => {
-            showNotification(error.message, 'error');
-          });
-      }
-    }
-    function renderEventTable() {
-      const tbody = document.getElementById('eventTableBody');
-      tbody.innerHTML = '';
-      events.forEach(event => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${event.title || ''}</td>
-          <td>${event.date || ''}</td>
-          <td>${event.time || ''}</td>
-          <td>${event.court || ''}</td>
-          <td>${event.opponent || ''}</td>
-          <td>${event.description || ''}</td>
-          <td>
-            <button class="btn btn-secondary" onclick="editEvent('${event.id}')">Edit</button>
-            <button class="btn btn-danger" onclick="removeEvent('${event.id}')">Delete</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    // COURTS CRUD
-    function fetchCourts() {
-      db.collection('courts').orderBy('name').get().then(snapshot => {
-        courts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderCourtTable();
-      });
-    }
-    function showCourtModal(court = null) {
-      document.getElementById('courtModal').classList.add('show');
-      if (court) {
-        document.getElementById('courtModalTitle').textContent = 'Edit Court';
-        document.getElementById('courtName').value = court.name || '';
-        document.getElementById('courtLocation').value = court.location || '';
-        document.getElementById('courtType').value = court.type || '';
-        document.getElementById('courtNotes').value = court.notes || '';
-        document.getElementById('courtId').value = court.id || '';
-      } else {
-        document.getElementById('courtModalTitle').textContent = 'Add Court';
-        document.getElementById('courtName').value = '';
-        document.getElementById('courtLocation').value = '';
-        document.getElementById('courtType').value = '';
-        document.getElementById('courtNotes').value = '';
-        document.getElementById('courtId').value = '';
-      }
-    }
-    function closeCourtModal() {
-      document.getElementById('courtModal').classList.remove('show');
-    }
-    function saveCourt() {
-      const name = document.getElementById('courtName').value;
-      const location = document.getElementById('courtLocation').value;
-      const type = document.getElementBy
+  <!-- Main App -->
+  <div class="container hidden" id="mainApp">
+    <h2>🎾 My Tennis Scheduler</h2>
+    <button class="btn btn-secondary" onclick="logout()">Logout</button>
+    <hr/>
+    <!-- Events Section -->
+    <h3>Events</h3>
+    <button class="btn" onclick="showEventModal()">Add Event</button>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th><th>Date</th><th>Time</th><th>Court</th><th>Opponent</th><th>Description</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="eventTableBody"></tbody>
+    </table>
+    <!-- Courts Section -->
+    <h3>Courts</h3>
+    <button class="btn" onclick="showCourtModal()">Add Court</button>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th><th>Location</th><th>Type</th><th>Notes</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="courtTableBody"></tbody>
+    </table>
+    <!-- Opponents Section -->
+    <h3>Opponents</h3>
+    <button class="btn" onclick="showOpponentModal()">Add Opponent</button>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th><th>Contact</th><th>Email</th><th>Phone</th><th>League</th><th>Notes</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="opponentTableBody"></tbody>
+    </table>
+  </div>
+  <!-- Event Modal -->
+  <div class="modal" id="eventModal">
+    <div class="modal-content">
+      <h3 id="eventModalTitle">Add Event</h3>
+      <input class="form-control" id="eventTitle" placeholder="Title" type="text"/>
+      <input class="form-control" id="eventDate" placeholder="Date" type="date"/>
+      <input class="form-control" id="eventTime" placeholder="Time" type="time"/>
+      <input class="form-control" id="eventCourt" placeholder="Court" type="text"/>
+      <input class="form-control" id="eventOpponent" placeholder="Opponent" type="text"/>
+      <textarea class="form-control" id="eventDescription" placeholder="Description"></textarea>
+      <button class="btn" id="saveEventBtn" onclick="saveEvent()">Save</button>
+      <button class="btn btn-secondary" onclick="closeEventModal()">Cancel</button>
+      <input type="hidden" id="eventId"/>
+    </div>
+  </div>
+  <!-- Court Modal -->
+  <div class="modal" id="courtModal">
+    <div class="modal-content">
+      <h3 id="courtModalTitle">Add Court</h3>
+      <input class="form-control" id="courtName" placeholder="Court Name" type="text"/>
+      <input class="form-control" id="courtLocation" placeholder="Location" type="text"/>
+      <select class="form-control" id="courtType">
+        <option value="Indoor">Indoor</option>
+        <option value="Outdoor">Outdoor</option>
+        <option value="Clay">Clay</option>
