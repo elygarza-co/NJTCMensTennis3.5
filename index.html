@@ -290,3 +290,75 @@
       const time = document.getElementById('eventTime').value;
       const court = document.getElementById('eventCourt').value;
       const opponent = document.getElementById('eventOpponent').value;
+      const description = document.getElementById('eventDescription').value;
+      const id = document.getElementById('eventId').value;
+      const eventData = { title, date, time, court, opponent, description };
+      if (id) {
+        db.collection('events').doc(id).update(eventData)
+          .then(() => {
+            showNotification('Event updated!');
+            fetchEvents();
+            closeEventModal();
+          })
+          .catch((error) => {
+            showNotification(error.message, 'error');
+          });
+      } else {
+        db.collection('events').add(eventData)
+          .then(() => {
+            showNotification('Event created!');
+            fetchEvents();
+            closeEventModal();
+          })
+          .catch((error) => {
+            showNotification(error.message, 'error');
+          });
+      }
+    }
+    function editEvent(id) {
+      const event = events.find(e => e.id === id);
+      if (event) showEventModal(event);
+    }
+    function removeEvent(id) {
+      if (confirm('Delete this event?')) {
+        db.collection('events').doc(id).delete()
+          .then(() => {
+            showNotification('Event deleted!');
+            fetchEvents();
+          })
+          .catch((error) => {
+            showNotification(error.message, 'error');
+          });
+      }
+    }
+    function renderEventTable() {
+      const tbody = document.getElementById('eventTableBody');
+      tbody.innerHTML = '';
+      events.forEach(event => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${event.title || ''}</td>
+          <td>${event.date || ''}</td>
+          <td>${event.time || ''}</td>
+          <td>${event.court || ''}</td>
+          <td>${event.opponent || ''}</td>
+          <td>${event.description || ''}</td>
+          <td>
+            <button class="btn btn-secondary" onclick="editEvent('${event.id}')">Edit</button>
+            <button class="btn btn-danger" onclick="removeEvent('${event.id}')">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // COURTS CRUD
+    function fetchCourts() {
+      db.collection('courts').orderBy('name').get().then(snapshot => {
+        courts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderCourtTable();
+      });
+    }
+     document.getElementById('courtModal').classList.add('show');
+      if (court) {
+        document.getElementById('courtModalTitle').textContent = 'Edit Court';
