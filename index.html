@@ -219,6 +219,19 @@
 <h2 style="text-align: center; margin-bottom: 30px; color: #667eea;">🎾 My Tennis Scheduler</h2>
 <input class="form-control" id="email" placeholder="Email" type="email"/>
 <input class="form-control" id="password" placeholder="Password" type="password"/>
+<div style="margin: 15px 0; text-align: center;">
+<label style="font-weight: bold; color: #667eea; margin-bottom: 10px; display: block;">Login As:</label>
+<div style="display: flex; justify-content: center; gap: 20px;">
+<label style="display: flex; align-items: center; cursor: pointer;">
+<input checked="" name="loginMode" style="margin-right: 8px;" type="radio" value="player"/>
+<span>🎾 Player</span>
+</label>
+<label style="display: flex; align-items: center; cursor: pointer;">
+<input name="loginMode" style="margin-right: 8px;" type="radio" value="admin"/>
+<span>🛠️ Admin</span>
+</label>
+</div>
+</div>
 <button class="btn" onclick="login()" style="width: 100%;">Sign In</button>
 <button class="btn btn-secondary" onclick="showRegister()" style="width: 100%;">Create Account</button>
 </div>
@@ -243,6 +256,10 @@
 <div class="logo">🎾 My Tennis Scheduler</div>
 <div>
 <span id="welcomeUser">Welcome!</span>
+<div class="hidden" id="modeSwitcher" style="display: inline-block; margin: 0 10px;">
+<button class="btn btn-small" id="playerModeBtn" onclick="switchToPlayerMode()">🎾 Player View</button>
+<button class="btn btn-small" id="adminModeBtn" onclick="switchToAdminMode()">🛠️ Admin View</button>
+</div>
 <button class="btn" onclick="showProfile()">Profile</button>
 <button class="btn btn-secondary" onclick="logout()">Logout</button>
 </div>
@@ -867,15 +884,20 @@
         function login() {
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
+            const loginMode = document.querySelector('input[name="loginMode"]:checked').value;
             
             const user = users.find(u => u.email.toLowerCase() === email && u.password === password);
             
             if (user) {
                 currentUser = user;
                 localStorage.setItem('tennisUser', JSON.stringify(user));
+                localStorage.setItem('loginMode', loginMode); // Remember the chosen mode
                 document.getElementById('welcomeUser').textContent = `Welcome, ${user.firstName}!`;
                 
-                if (user.isAdmin) {
+                // Use the toggle choice to determine view, but only if user has admin rights
+                const showAdminView = (loginMode === 'admin' && user.isAdmin);
+                
+                if (showAdminView) {
                     document.getElementById('adminNav').classList.remove('hidden');
                     document.getElementById('regularControls').classList.add('hidden');
                     document.getElementById('regularStats').classList.add('hidden');
@@ -891,7 +913,7 @@
                 renderCalendar();
                 updateStats();
                 updateAdminStats();
-                showNotification('Welcome back!');
+                showNotification(`Welcome back${showAdminView ? ' (Admin Mode)' : ''}!`);
             } else {
                 showNotification('Invalid credentials', 'error');
             }
@@ -941,9 +963,53 @@
 
         function logout() {
             localStorage.removeItem('tennisUser');
+            localStorage.removeItem('loginMode');
             currentUser = null;
             show('loginScreen');
             showNotification('Logged out');
+        }
+
+        // Mode switching functions
+        function switchToPlayerMode() {
+            if (!currentUser || !currentUser.isAdmin) return;
+            
+            localStorage.setItem('loginMode', 'player');
+            document.getElementById('adminNav').classList.add('hidden');
+            document.getElementById('regularControls').classList.remove('hidden');
+            document.getElementById('regularStats').classList.remove('hidden');
+            showScheduleView();
+            updateModeButtons();
+            showNotification('Switched to Player View');
+        }
+
+        function switchToAdminMode() {
+            if (!currentUser || !currentUser.isAdmin) return;
+            
+            localStorage.setItem('loginMode', 'admin');
+            document.getElementById('adminNav').classList.remove('hidden');
+            document.getElementById('regularControls').classList.add('hidden');
+            document.getElementById('regularStats').classList.add('hidden');
+            showAdminSection('dashboard');
+            updateModeButtons();
+            showNotification('Switched to Admin View');
+        }
+
+        function updateModeButtons() {
+            if (!currentUser || !currentUser.isAdmin) {
+                document.getElementById('modeSwitcher').classList.add('hidden');
+                return;
+            }
+            
+            document.getElementById('modeSwitcher').classList.remove('hidden');
+            const currentMode = localStorage.getItem('loginMode') || 'player';
+            
+            if (currentMode === 'admin') {
+                document.getElementById('adminModeBtn').style.background = '#667eea';
+                document.getElementById('playerModeBtn').style.background = '#6c757d';
+            } else {
+                document.getElementById('playerModeBtn').style.background = '#667eea';
+                document.getElementById('adminModeBtn').style.background = '#6c757d';
+            }
         }
 
         function showLogin() {
@@ -2033,7 +2099,11 @@
                     currentUser = JSON.parse(savedUser);
                     document.getElementById('welcomeUser').textContent = `Welcome, ${currentUser.firstName}!`;
                     
-                    if (currentUser.isAdmin) {
+                    // Check saved login mode preference
+                    const savedMode = localStorage.getItem('loginMode') || 'player';
+                    const showAdminView = (savedMode === 'admin' && currentUser.isAdmin);
+                    
+                    if (showAdminView) {
                         document.getElementById('adminNav').classList.remove('hidden');
                         document.getElementById('regularControls').classList.add('hidden');
                         document.getElementById('regularStats').classList.add('hidden');
@@ -2044,6 +2114,9 @@
                         document.getElementById('regularStats').classList.remove('hidden');
                         showScheduleView();
                     }
+                    
+                    // Update mode buttons for admin users
+                    updateModeButtons();
                     
                     show('mainApp');
                     renderCalendar();
