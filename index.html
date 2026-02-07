@@ -18,10 +18,7 @@
     .btn-danger { background: #dc3545; }
     .btn-secondary { background: #6c757d; }
     .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; }
-    .notification { position: fixed; top: 20px; right: 20px; padding: 15px; border-radius: 5px; color: white; z-index: 1000; display: none; }
-    .notification.show { display: block; }
-    .notification.success { background: #28a745; }
-    .notification.error { background: #dc3545; }
+    .notification { margin-top: 15px; color: #dc3545; font-weight: bold; }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
     th { background: #f8f9fa; font-weight: bold; }
@@ -73,6 +70,7 @@
       <input class="form-control" id="password" placeholder="Password" type="password"/>
       <button class="btn" onclick="login()">Sign In</button>
       <button class="btn btn-secondary" onclick="showRegister()">Create Account</button>
+      <div class="notification" id="loginNotification"></div>
     </div>
   </div>
   <div class="login-container hidden" id="registerScreen">
@@ -84,9 +82,9 @@
       <input class="form-control" id="regPassword" placeholder="Password" type="password"/>
       <button class="btn" onclick="register()">Create Account</button>
       <button class="btn btn-secondary" onclick="showLogin()">Back to Login</button>
+      <div class="notification" id="registerNotification"></div>
     </div>
   </div>
-  <!-- Main App -->
   <div class="container hidden" id="mainApp">
     <h2>🎾 My Tennis Scheduler</h2>
     <button class="btn btn-secondary" onclick="logout()">Logout</button>
@@ -174,39 +172,39 @@
       <input type="hidden" id="opponentId"/>
     </div>
   </div>
-  <!-- Notification -->
-  <div class="notification" id="notification"></div>
   <script>
-    // Global state
-    let currentUser = null;
-    let events = [];
-    let courts = [];
-    let opponents = [];
-
     // UI helpers
     function show(id) {
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('registerScreen').classList.add('hidden');
       document.getElementById('mainApp').classList.add('hidden');
       if (id) document.getElementById(id).classList.remove('hidden');
-    }
-    function showNotification(message, type = 'success') {
-      const notification = document.getElementById('notification');
-      notification.textContent = message;
-      notification.className = `notification ${type} show`;
-      setTimeout(() => { notification.classList.remove('show'); }, 3000);
+      document.getElementById('loginNotification').textContent = '';
+      document.getElementById('registerNotification').textContent = '';
     }
     function showRegister() { show('registerScreen'); }
     function showLogin() { show('loginScreen'); }
 
     // Auth
+    function login() {
+      const email = document.getElementById('email').value.trim().toLowerCase();
+      const password = document.getElementById('password').value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          show('mainApp');
+          fetchAppData();
+        })
+        .catch((error) => {
+          document.getElementById('loginNotification').textContent = error.message;
+        });
+    }
     function register() {
       const firstName = document.getElementById('regFirstName').value;
       const lastName = document.getElementById('regLastName').value;
       const email = document.getElementById('regEmail').value.trim().toLowerCase();
       const password = document.getElementById('regPassword').value;
       if (!firstName || !lastName || !email || !password) {
-        showNotification('Please fill all fields', 'error');
+        document.getElementById('registerNotification').textContent = 'Please fill all fields';
         return;
       }
       auth.createUserWithEmailAndPassword(email, password)
@@ -216,36 +214,21 @@
           });
         })
         .then(() => {
-          showNotification('Account created!');
           show('mainApp');
           fetchAppData();
         })
         .catch((error) => {
-          showNotification(error.message, 'error');
-        });
-    }
-    function login() {
-      const email = document.getElementById('email').value.trim().toLowerCase();
-      const password = document.getElementById('password').value;
-      auth.signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          currentUser = userCredential.user;
-          show('mainApp');
-          fetchAppData();
-        })
-        .catch((error) => {
-          showNotification(error.message, 'error');
+          document.getElementById('registerNotification').textContent = error.message;
         });
     }
     function logout() {
       auth.signOut().then(() => {
-        currentUser = null;
         show('loginScreen');
-        showNotification('Logged out');
       });
     }
 
     // App Data Fetch
+    let events = [], courts = [], opponents = [];
     function fetchAppData() {
       fetchEvents();
       fetchCourts();
@@ -296,22 +279,20 @@
       if (id) {
         db.collection('events').doc(id).update(eventData)
           .then(() => {
-            showNotification('Event updated!');
             fetchEvents();
             closeEventModal();
           })
           .catch((error) => {
-            showNotification(error.message, 'error');
+            alert(error.message);
           });
       } else {
         db.collection('events').add(eventData)
           .then(() => {
-            showNotification('Event created!');
             fetchEvents();
             closeEventModal();
           })
           .catch((error) => {
-            showNotification(error.message, 'error');
+            alert(error.message);
           });
       }
     }
@@ -323,11 +304,10 @@
       if (confirm('Delete this event?')) {
         db.collection('events').doc(id).delete()
           .then(() => {
-            showNotification('Event deleted!');
             fetchEvents();
           })
           .catch((error) => {
-            showNotification(error.message, 'error');
+            alert(error.message);
           });
       }
     }
@@ -358,7 +338,18 @@
         courts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderCourtTable();
       });
-    }
-     document.getElementById('courtModal').classList.add('show');
+   {
+      document.getElementById('courtModal').classList.add('show');
       if (court) {
         document.getElementById('courtModalTitle').textContent = 'Edit Court';
+        document.getElementById('courtName').value = court.name || '';
+        document.getElementById('courtLocation').value = court.location || '';
+        document.getElementById('courtType').value = court.type || '';
+        document.getElementById('courtNotes').value = court.notes || '';
+        document.getElementById('courtId').value = court.id || '';
+      } else {
+        document.getElementById('courtModalTitle').textContent = 'Add Court';
+        document.getElementById('courtName').value = '';
+        document.getElementById('courtLocation').value = '';
+        document.getElementById('courtType').value = '';
+        document.getElementBy
