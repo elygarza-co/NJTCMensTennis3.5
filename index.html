@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tennis Team Scheduler</title>
+<style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .card { 
+            background: white; 
+            border-radius: 15px; 
+            padding: 20px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .btn { 
+            background: #667eea; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin: 5px;
+        }
+        .btn:hover { background: #5a6fd8; }
+        .btn-secondary { background: #6c757d; }
+        .btn-danger { background: #dc3545; }
+        .form-control { 
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+            margin-bottom: 10px;
+        }
+        .login-container { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+        }
+        .login-card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px;
+        }
+        .logo { font-size: 24px; font-weight: bold; color: #667eea; }
+        .notification { 
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            padding: 15px; 
+            border-radius: 5px; 
+            color: white; 
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s;
+        }
+        .notification.show { transform: translateX(0); }
+        .notification.success { background: #28a745; }
+        .notification.error { background: #dc3545; }
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.5); 
+            z-index: 1000;
+        }
+        .modal.show { display: flex; align-items: center; justify-content: center; }
+        .modal-content { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 15px; 
+            max-width: 500px; 
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .calendar-grid { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            gap: 1px; 
+            background: #ddd;
+        }
+        .calendar-day { 
+            background: white; 
+            padding: 10px; 
+            min-height: 60px; 
+            cursor: pointer; 
+            border: 1px solid #eee;
+        }
+        .calendar-day:hover { background: #f0f0f0; }
+        .calendar-day.today { background: #fff3cd; }
+        .event-dot { 
+            width: 8px; 
+            height: 8px; 
+            background: #28a745; 
+            border-radius: 50%; 
+            float: right;
+        }
+        .event-item { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            margin-bottom: 10px; 
+            border-radius: 5px; 
+            cursor: pointer;
+            border-left: 4px solid #667eea;
+        }
+        .event-item:hover { background: #e9ecef; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<!-- Login Screen -->
+<div class="login-container" id="loginScreen">
+<div class="login-card">
+<h2 style="text-align: center; margin-bottom: 30px; color: #667eea;">🎾 Tennis Team Scheduler</h2>
+<div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-size: 14px;">
+<strong>Demo Account:</strong><br/>
+                Email: admin@tennis.com<br/>
+                Password: admin123
+            </div>
+<input class="form-control" id="email" placeholder="Email" type="email" value="admin@tennis.com"/>
+<input class="form-control" id="password" placeholder="Password" type="password" value="admin123"/>
+<button class="btn" onclick="login()" style="width: 100%;">Sign In</button>
+<button class="btn btn-secondary" onclick="showRegister()" style="width: 100%;">Create Account</button>
+</div>
+</div>
+<!-- Registration Screen -->
+<div class="login-container hidden" id="registerScreen">
+<div class="login-card">
+<h2 style="text-align: center; margin-bottom: 30px; color: #667eea;">Join the Team</h2>
+<input class="form-control" id="regFirstName" placeholder="First Name" type="text"/>
+<input class="form-control" id="regLastName" placeholder="Last Name" type="text"/>
+<input class="form-control" id="regEmail" placeholder="Email" type="email"/>
+<input class="form-control" id="regPassword" placeholder="Password" type="password"/>
+<button class="btn" onclick="register()" style="width: 100%;">Create Account</button>
+<button class="btn btn-secondary" onclick="showLogin()" style="width: 100%;">Back to Login</button>
+</div>
+</div>
+<!-- Main App -->
+<div class="hidden" id="mainApp">
+<div class="container">
+<div class="card">
+<div class="header">
+<div class="logo">🎾 Tennis Team Scheduler</div>
+<div>
+<span id="welcomeUser">Welcome!</span>
+<button class="btn" onclick="showProfile()">Profile</button>
+<button class="btn btn-secondary" onclick="logout()">Logout</button>
+</div>
+</div>
+</div>
+<div class="card">
+<div class="header">
+<h3>Team Schedule</h3>
+<div class="hidden" id="adminControls">
+<button class="btn" onclick="showCreateEvent()">Add Event</button>
+</div>
+</div>
+<div style="margin-bottom: 20px;">
+<button class="btn" id="calendarBtn" onclick="switchView('calendar')">Calendar</button>
+<button class="btn btn-secondary" id="listBtn" onclick="switchView('list')">List</button>
+</div>
+<!-- Calendar View -->
+<div id="calendarView">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<button class="btn btn-secondary" onclick="previousMonth()">‹</button>
+<h3 id="monthHeader">April 2026</h3>
+<button class="btn btn-secondary" onclick="nextMonth()">›</button>
+</div>
+<div class="calendar-grid" id="calendar"></div>
+</div>
+<!-- List View -->
+<div class="hidden" id="listView">
+<div id="eventsList"></div>
+</div>
+</div>
+<!-- Stats -->
+<div class="card">
+<h3>Quick Stats</h3>
+<p>Upcoming Matches: <span id="upcomingMatches">0</span></p>
+<p>My RSVPs: <span id="myRSVPs">0</span></p>
+<p>Team Members: 15</p>
+</div>
+</div>
+</div>
+<!-- Event Modal -->
+<div class="modal" id="eventModal">
+<div class="modal-content">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<h3 id="eventTitle">Event Details</h3>
+<button onclick="closeModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
+</div>
+<div id="eventContent"></div>
+</div>
+</div>
+<!-- Create Event Modal -->
+<div class="modal" id="createEventModal">
+<div class="modal-content">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<h3>Create Event</h3>
+<button onclick="closeCreateModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
+</div>
+<select class="form-control" id="eventType">
+<option value="match">Match</option>
+<option value="practice">Practice</option>
+<option value="social">Social Event</option>
+</select>
+<input class="form-control" id="eventDate" type="date"/>
+<input class="form-control" id="eventTime" type="time" value="18:00"/>
+<select class="form-control" id="courtLocation">
+<option value="">Select Court...</option>
+<option value="1">Central Park Tennis Center - Court 1</option>
+<option value="2">Central Park Tennis Center - Court 2</option>
+<option value="3">Riverside Tennis Club - Court A</option>
+</select>
+<select class="form-control" id="opponent">
+<option value="">Select Opponent...</option>
+<option value="1">Eagles Tennis Team</option>
+<option value="2">Hawks Tennis Club</option>
+<option value="3">Lions Athletic Club</option>
+</select>
+<textarea class="form-control" id="eventDescription" placeholder="Description/Notes" rows="3"></textarea>
+<button class="btn" onclick="createEvent()">Create Event</button>
+</div>
+</div>
+<!-- Profile Modal -->
+<div class="modal" id="profileModal">
+<div class="modal-content">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<h3>My Profile</h3>
+<button onclick="closeProfileModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
+</div>
+<input class="form-control" id="profileFirstName" placeholder="First Name" type="text"/>
+<input class="form-control" id="profileLastName" placeholder="Last Name" type="text"/>
+<input class="form-control" id="profileEmail" placeholder="Email" type="email"/>
+<textarea class="form-control" id="preferredDays" placeholder="Preferred match days" rows="2"></textarea>
+<textarea class="form-control" id="unavailableDates" placeholder="Unavailable dates" rows="2"></textarea>
+<button class="btn" onclick="updateProfile()">Update Profile</button>
+</div>
+</div>
+<!-- Notification -->
+<div class="notification" id="notification"></div>
+<script>
+        // Global variables
+        let currentUser = null;
+        let currentView = 'calendar';
+        let currentDate = new Date();
+        let events = [];
+        let users = [
+            {
+                id: 1,
+                firstName: 'Admin',
+                lastName: 'User',
+                email: 'admin@tennis.com',
+                password: 'admin123',
+                isAdmin: true,
+                preferredDays: 'Any Tuesday',
+                unavailableDates: ''
+            }
+        ];
+
+        // Sample events
+        events = [
+            {
+                id: 1,
+                type: 'match',
+                title: 'vs Eagles Tennis Team',
+                date: '2026-04-08',
+                time: '18:00',
+                court: 'Central Park Tennis Center - Court 1',
+                opponent: 'Eagles Tennis Team',
+                description: 'Season opener',
+                rsvps: {}
+            },
+            {
+                id: 2,
+                type: 'practice',
+                title: 'Team Practice',
+                date: '2026-04-05',
+                time: '10:00',
+                court: 'Riverside Tennis Club - Court A',
+                description: 'Pre-season practice',
+                rsvps: {}
+            }
+        ];
+
+        // Utility functions
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function show(elementId) {
+            document.querySelectorAll('.login-container, #mainApp').forEach(el => el.classList.add('hidden'));
+            document.getElementById(elementId).classList.remove('hidden');
+        }
+
+        // Authentication
+        function login() {
+            console.log('Login function called');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            console.log('Login attempt:', email, password ? '***' : 'empty');
+            
+            const user = users.find(u => u.email === email && u.password === password);
+            
+            if (user) {
+                console.log('Login successful');
+                currentUser = user;
+                localStorage.setItem('tennisUser', JSON.stringify(user));
+                document.getElementById('welcomeUser').textContent = `Welcome, ${user.firstName}!`;
+                
+                if (user.isAdmin) {
+                    document.getElementById('adminControls').classList.remove('hidden');
+                }
+                
+                show('mainApp');
+                renderCalendar();
+                updateStats();
+                showNotification('Welcome back!');
+            } else {
+                console.log('Login failed');
+                showNotification('Invalid credentials', 'error');
+            }
+        }
+
+        function register() {
+            const firstName = document.getElementById('regFirstName').value;
+            const lastName = document.getElementById('regLastName').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            
+            if (!firstName || !lastName || !email || !password) {
+                showNotification('Please fill all fields', 'error');
+                return;
+            }
+            
+            if (users.find(u => u.email === email)) {
+                showNotification('Email already exists', 'error');
+                return;
+            }
+            
+            const newUser = {
+                id: users.length + 1,
+                firstName,
+                lastName,
+                email,
+                password,
+                isAdmin: false,
+                preferredDays: '',
+                unavailableDates: ''
+            };
+            
+            users.push(newUser);
+            currentUser = newUser;
+            localStorage.setItem('tennisUser', JSON.stringify(newUser));
+            document.getElementById('welcomeUser').textContent = `Welcome, ${newUser.firstName}!`;
+            
+            show('mainApp');
+            renderCalendar();
+            updateStats();
+            showNotification('Account created!');
+        }
+
+        function logout() {
+            localStorage.removeItem('tennisUser');
+            currentUser = null;
+            show('loginScreen');
+            showNotification('Logged out');
+        }
+
+        function showLogin() {
+            show('loginScreen');
+        }
+
+        function showRegister() {
+            show('registerScreen');
+        }
+
+        // View switching
+        function switchView(view) {
+            currentView = view;
+            
+            if (view === 'calendar') {
+                document.getElementById('calendarView').classList.remove('hidden');
+                document.getElementById('listView').classList.add('hidden');
+                document.getElementById('calendarBtn').className = 'btn';
+                document.getElementById('listBtn').className = 'btn btn-secondary';
+            } else {
+                document.getElementById('calendarView').classList.add('hidden');
+                document.getElementById('listView').classList.remove('hidden');
+                document.getElementById('calendarBtn').className = 'btn btn-secondary';
+                document.getElementById('listBtn').className = 'btn';
+                renderEventsList();
+            }
+        }
+
+        // Calendar functions
+        function renderCalendar() {
+            const calendar = document.getElementById('calendar');
+            const monthHeader = document.getElementById('monthHeader');
+            
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                               'July', 'August', 'September', 'October', 'November', 'December'];
+            monthHeader.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+            
+            calendar.innerHTML = '';
+            
+            // Add day headers
+            ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
+                const header = document.createElement('div');
+                header.style.cssText = 'background: #667eea; color: white; padding: 10px; text-align: center; font-weight: bold;';
+                header.textContent = day;
+                calendar.appendChild(header);
+            });
+            
+            // Get first day of month
+            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            // Generate calendar days
+            for (let i = 0; i < 42; i++) {
+                const cellDate = new Date(startDate);
+                cellDate.setDate(startDate.getDate() + i);
+                
+                const dayCell = document.createElement('div');
+                dayCell.className = 'calendar-day';
+                dayCell.textContent = cellDate.getDate();
+                
+                if (cellDate.getMonth() !== currentDate.getMonth()) {
+                    dayCell.style.color = '#ccc';
+                }
+                
+                if (isToday(cellDate)) {
+                    dayCell.classList.add('today');
+                }
+                
+                // Check for events
+                const dayEvents = getEventsForDate(cellDate);
+                if (dayEvents.length > 0) {
+                    const dot = document.createElement('div');
+                    dot.className = 'event-dot';
+                    dayCell.appendChild(dot);
+                }
+                
+                dayCell.onclick = () => showDayEvents(cellDate);
+                calendar.appendChild(dayCell);
+            }
+        }
+
+        function isToday(date) {
+            const today = new Date();
+            return date.toDateString() === today.toDateString();
+        }
+
+        function getEventsForDate(date) {
+            const dateStr = date.toISOString().split('T')[0];
+            return events.filter(event => event.date === dateStr);
+        }
+
+        function showDayEvents(date) {
+            const dayEvents = getEventsForDate(date);
+            if (dayEvents.length === 0) {
+                if (currentUser && currentUser.isAdmin) {
+                    if (confirm('No events on this day. Create one?')) {
+                        document.getElementById('eventDate').value = date.toISOString().split('T')[0];
+                        showCreateEvent();
+                    }
+                } else {
+                    showNotification('No events on this day');
+                }
+                return;
+            }
+            showEventDetails(dayEvents[0]);
+        }
+
+        function previousMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        }
+
+        function nextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        }
+
+        // Event management
+        function showEventDetails(event) {
+            document.getElementById('eventTitle').textContent = event.title;
+            
+            const userRSVP = event.rsvps[currentUser.id] || 'pending';
+            
+            document.getElementById('eventContent').innerHTML = `
+                <p><strong>Type:</strong> ${event.type}</p>
+                <p><strong>Date:</strong> ${new Date(event.date).toLocaleDateString()}</p>
+                <p><strong>Time:</strong> ${event.time}</p>
+                <p><strong>Location:</strong> ${event.court || 'TBD'}</p>
+                <p><strong>Description:</strong> ${event.description || 'None'}</p>
+                
+                <div style="margin: 20px 0;">
+                    <h4>Your RSVP:</h4>
+                    <label><input type="radio" name="rsvp" value="yes" ${userRSVP === 'yes' ? 'checked' : ''} onchange="updateRSVP(${event.id}, 'yes')"> Yes</label>
+                    <label><input type="radio" name="rsvp" value="no" ${userRSVP === 'no' ? 'checked' : ''} onchange="updateRSVP(${event.id}, 'no')"> No</label>
+                    <label><input type="radio" name="rsvp" value="maybe" ${userRSVP === 'maybe' ? 'checked' : ''} onchange="updateRSVP(${event.id}, 'maybe')"> Maybe</label>
+                </div>
+                
+                ${currentUser.isAdmin ? `<button onclick="deleteEvent(${event.id})" class="btn btn-danger">Delete Event</button>` : ''}
+            `;
+            
+            document.getElementById('eventModal').classList.add('show');
+        }
+
+        function updateRSVP(eventId, status) {
+            const event = events.find(e => e.id === eventId);
+            if (event) {
+                event.rsvps[currentUser.id] = status;
+                showNotification(`RSVP updated: ${status}`);
+                updateStats();
+            }
+        }
+
+        function deleteEvent(eventId) {
+            if (confirm('Delete this event?')) {
+                events = events.filter(e => e.id !== eventId);
+                closeModal();
+                renderCalendar();
+                updateStats();
+                showNotification('Event deleted');
+            }
+        }
+
+        function showCreateEvent() {
+            document.getElementById('createEventModal').classList.add('show');
+        }
+
+        function createEvent() {
+            const type = document.getElementById('eventType').value;
+            const date = document.getElementById('eventDate').value;
+            const time = document.getElementById('eventTime').value;
+            const court = document.getElementById('courtLocation').selectedOptions[0]?.text || '';
+            const opponent = document.getElementById('opponent').selectedOptions[0]?.text || '';
+            const description = document.getElementById('eventDescription').value;
+            
+            if (!date) {
+                showNotification('Please select a date', 'error');
+                return;
+            }
+            
+            let title = '';
+            if (type === 'match' && opponent) {
+                title = `vs ${opponent}`;
+            } else if (type === 'practice') {
+                title = 'Team Practice';
+            } else {
+                title = description || 'Team Event';
+            }
+            
+            const newEvent = {
+                id: events.length + 1,
+                type,
+                title,
+                date,
+                time,
+                court,
+                opponent,
+                description,
+                rsvps: {}
+            };
+            
+            events.push(newEvent);
+            closeCreateModal();
+            renderCalendar();
+            updateStats();
+            showNotification('Event created!');
+        }
+
+        function renderEventsList() {
+            const container = document.getElementById('eventsList');
+            const sortedEvents = events.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            if (sortedEvents.length === 0) {
+                container.innerHTML = '<p>No events scheduled</p>';
+                return;
+            }
+            
+            container.innerHTML = sortedEvents.map(event => {
+                const userRSVP = event.rsvps[currentUser.id] || 'pending';
+                return `
+                    <div class="event-item" onclick="showEventDetails(${JSON.stringify(event).replace(/"/g, '&quot;')})">
+                        <div style="font-weight: bold;">${event.title}</div>
+                        <div>${new Date(event.date).toLocaleDateString()} at ${event.time}</div>
+                        <div>RSVP: ${userRSVP}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Profile management
+        function showProfile() {
+            document.getElementById('profileFirstName').value = currentUser.firstName;
+            document.getElementById('profileLastName').value = currentUser.lastName;
+            document.getElementById('profileEmail').value = currentUser.email;
+            document.getElementById('preferredDays').value = currentUser.preferredDays || '';
+            document.getElementById('unavailableDates').value = currentUser.unavailableDates || '';
+            document.getElementById('profileModal').classList.add('show');
+        }
+
+        function updateProfile() {
+            currentUser.firstName = document.getElementById('profileFirstName').value;
+            currentUser.lastName = document.getElementById('profileLastName').value;
+            currentUser.email = document.getElementById('profileEmail').value;
+            currentUser.preferredDays = document.getElementById('preferredDays').value;
+            currentUser.unavailableDates = document.getElementById('unavailableDates').value;
+            
+            // Update in users array
+            const userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex !== -1) {
+                users[userIndex] = currentUser;
+            }
+            
+            localStorage.setItem('tennisUser', JSON.stringify(currentUser));
+            document.getElementById('welcomeUser').textContent = `Welcome, ${currentUser.firstName}!`;
+            closeProfileModal();
+            showNotification('Profile updated!');
+        }
+
+        // Modal management
+        function closeModal() {
+            document.getElementById('eventModal').classList.remove('show');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createEventModal').classList.remove('show');
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').classList.remove('show');
+        }
+
+        // Stats
+        function updateStats() {
+            const now = new Date();
+            const upcomingMatches = events.filter(e => e.type === 'match' && new Date(e.date) >= now).length;
+            const myRSVPs = events.filter(e => e.rsvps[currentUser.id] === 'yes').length;
+            
+            document.getElementById('upcomingMatches').textContent = upcomingMatches;
+            document.getElementById('myRSVPs').textContent = myRSVPs;
+        }
+
+        // Initialize app
+        function init() {
+            console.log('App initializing...');
+            
+            // Check for saved user
+            const savedUser = localStorage.getItem('tennisUser');
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    document.getElementById('welcomeUser').textContent = `Welcome, ${currentUser.firstName}!`;
+                    
+                    if (currentUser.isAdmin) {
+                        document.getElementById('adminControls').classList.remove('hidden');
+                    }
+                    
+                    show('mainApp');
+                    renderCalendar();
+                    updateStats();
+                } catch (e) {
+                    console.log('Error loading saved user');
+                    show('loginScreen');
+                }
+            } else {
+                show('loginScreen');
+            }
+            
+            console.log('App initialized');
+        }
+
+        // Start the app
+        console.log('Script loaded');
+        
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+
+        // Close modals when clicking outside
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
