@@ -217,6 +217,12 @@
 <div class="login-container" id="loginScreen">
 <div class="login-card">
 <h2 style="text-align: center; margin-bottom: 30px; color: #667eea;">🎾 My Tennis Scheduler</h2>
+<!-- Mobile Debug Panel -->
+<div id="debugPanel" style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin-bottom: 15px; font-size: 12px; display: none;">
+<div style="font-weight: bold; margin-bottom: 5px;">📱 Mobile Debug Info:</div>
+<div id="debugInfo">Loading...</div>
+<button onclick="toggleDebugPanel()" style="background: none; border: none; color: #667eea; font-size: 11px; margin-top: 5px;">Hide Debug</button>
+</div>
 <input class="form-control" id="email" placeholder="Email" type="email"/>
 <input class="form-control" id="password" placeholder="Password" type="password"/>
 <div style="margin: 15px 0; text-align: center;">
@@ -234,6 +240,14 @@
 </div>
 <button class="btn" onclick="login()" style="width: 100%;">Sign In</button>
 <button class="btn btn-secondary" onclick="showRegister()" style="width: 100%;">Create Account</button>
+<!-- Debug Toggle Button -->
+<button onclick="toggleDebugPanel()" style="background: none; border: none; color: #667eea; font-size: 11px; margin-top: 10px; width: 100%;">Show Mobile Debug Info</button>
+<!-- Default Credentials Info -->
+<div style="margin-top: 15px; padding: 10px; background: #e7f3ff; border-radius: 5px; font-size: 12px; text-align: center;">
+<strong>Default Admin:</strong><br/>
+Email: admin@tennis.com<br/>
+Password: admin123
+</div>
 </div>
 </div>
 <!-- Registration Screen -->
@@ -696,20 +710,152 @@
         let currentAdminSection = 'dashboard';
         let events = [];
         
-        // Load users from localStorage or use defaults
+        // Enhanced localStorage availability check with mobile debugging
+        function isLocalStorageAvailable() {
+            try {
+                const test = '__localStorage_test__';
+                localStorage.setItem(test, test);
+                const retrieved = localStorage.getItem(test);
+                localStorage.removeItem(test);
+                
+                console.log('localStorage test - stored and retrieved:', retrieved === test);
+                return retrieved === test;
+            } catch (e) {
+                console.log('localStorage not available:', e);
+                console.log('Error type:', e.name);
+                console.log('Error message:', e.message);
+                return false;
+            }
+        }
+
+        // Mobile-specific storage debugging
+        function debugMobileStorage() {
+            console.log('=== MOBILE STORAGE DEBUG ===');
+            console.log('User Agent:', navigator.userAgent);
+            console.log('Is mobile device:', /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+            console.log('Is iOS:', /iPad|iPhone|iPod/.test(navigator.userAgent));
+            console.log('Is Android:', /Android/.test(navigator.userAgent));
+            console.log('Is in standalone mode (PWA):', window.navigator.standalone);
+            console.log('Is private browsing (estimated):', !window.indexedDB);
+            console.log('localStorage available:', isLocalStorageAvailable());
+            
+            try {
+                console.log('localStorage length:', localStorage.length);
+                console.log('localStorage keys:', Object.keys(localStorage));
+            } catch (e) {
+                console.log('Cannot access localStorage:', e);
+            }
+            
+            console.log('sessionStorage available:', typeof(Storage) !== "undefined" && sessionStorage);
+            console.log('=== END DEBUG ===');
+            
+            // Update debug panel if it exists
+            updateDebugPanel();
+        }
+
+        // Update debug panel with current info
+        function updateDebugPanel() {
+            const debugInfo = document.getElementById('debugInfo');
+            if (!debugInfo) return;
+            
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isAndroid = /Android/.test(navigator.userAgent);
+            const isPrivate = !window.indexedDB;
+            const storageAvailable = isLocalStorageAvailable();
+            
+            let storageKeys = [];
+            try {
+                storageKeys = Object.keys(localStorage);
+            } catch (e) {
+                storageKeys = ['Error accessing storage'];
+            }
+            
+            debugInfo.innerHTML = `
+                <div>📱 Mobile: ${isMobile ? 'Yes' : 'No'} ${isIOS ? '(iOS)' : ''} ${isAndroid ? '(Android)' : ''}</div>
+                <div>🔒 Private Mode: ${isPrivate ? 'Likely' : 'No'}</div>
+                <div>💾 Storage Available: ${storageAvailable ? 'Yes' : 'No'}</div>
+                <div>👥 Users Loaded: ${users.length}</div>
+                <div>🗂️ Storage Keys: ${storageKeys.length > 0 ? storageKeys.join(', ') : 'None'}</div>
+                <div style="margin-top: 5px; font-size: 10px; color: #666;">
+                    ${!storageAvailable ? '⚠️ Storage issues detected - accounts may not persist' : '✅ Storage working normally'}
+                </div>
+            `;
+        }
+
+        // Toggle debug panel visibility
+        function toggleDebugPanel() {
+            const panel = document.getElementById('debugPanel');
+            const button = event.target;
+            
+            if (panel.style.display === 'none' || !panel.style.display) {
+                panel.style.display = 'block';
+                button.textContent = 'Hide Mobile Debug Info';
+                updateDebugPanel();
+            } else {
+                panel.style.display = 'none';
+                button.textContent = 'Show Mobile Debug Info';
+            }
+        }
+
+        // Enhanced user loading with mobile fallbacks
         function loadUsers() {
+            console.log('Loading users...');
+            debugMobileStorage();
+            
+            if (!isLocalStorageAvailable()) {
+                console.log('Using default users (localStorage not available)');
+                showNotification('Using default accounts (storage limited on this device)', 'error');
+                return getDefaultUsers();
+            }
+            
             try {
                 const savedUsers = localStorage.getItem('tennisUsers');
-                if (savedUsers && savedUsers !== 'null') {
+                console.log('Saved users raw:', savedUsers);
+                console.log('Saved users type:', typeof savedUsers);
+                console.log('Saved users length:', savedUsers ? savedUsers.length : 'null');
+                
+                if (savedUsers && savedUsers !== 'null' && savedUsers !== 'undefined') {
                     const parsed = JSON.parse(savedUsers);
+                    console.log('Parsed users:', parsed);
+                    console.log('Parsed users is array:', Array.isArray(parsed));
+                    console.log('Parsed users length:', parsed ? parsed.length : 'null');
+                    
                     if (Array.isArray(parsed) && parsed.length > 0) {
-                        return parsed;
+                        console.log('Using saved users:', parsed.length, 'users');
+                        // Verify each user has required fields
+                        const validUsers = parsed.filter(user => 
+                            user && user.email && user.password && user.firstName
+                        );
+                        console.log('Valid users after filtering:', validUsers.length);
+                        
+                        if (validUsers.length > 0) {
+                            return validUsers;
+                        }
                     }
                 }
             } catch (e) {
                 console.log('Error loading users from localStorage:', e);
+                console.log('Error details:', e.name, e.message);
             }
             
+            console.log('Using default users (fallback)');
+            const defaultUsers = getDefaultUsers();
+            
+            // Try to save default users immediately for mobile devices
+            try {
+                if (isLocalStorageAvailable()) {
+                    localStorage.setItem('tennisUsers', JSON.stringify(defaultUsers));
+                    console.log('Saved default users to localStorage');
+                }
+            } catch (e) {
+                console.log('Could not save default users:', e);
+            }
+            
+            return defaultUsers;
+        }
+
+        function getDefaultUsers() {
             return [
             {
                 id: 1,
@@ -751,12 +897,45 @@
 
         let users = loadUsers();
 
-        // Save users to localStorage
+        // Enhanced save users with mobile debugging
         function saveUsers() {
+            console.log('Attempting to save users...');
+            console.log('Users to save:', users.length, 'users');
+            
+            if (!isLocalStorageAvailable()) {
+                console.log('Cannot save users - localStorage not available');
+                showNotification('Cannot save data on this device (storage limited)', 'error');
+                return false;
+            }
+            
             try {
-                localStorage.setItem('tennisUsers', JSON.stringify(users));
+                const usersJson = JSON.stringify(users);
+                console.log('Users JSON length:', usersJson.length);
+                
+                localStorage.setItem('tennisUsers', usersJson);
+                console.log('Users saved successfully');
+                
+                // Verify save worked
+                const verification = localStorage.getItem('tennisUsers');
+                if (verification && verification.length > 0) {
+                    console.log('Save verification successful');
+                    return true;
+                } else {
+                    console.log('Save verification failed - data not found after save');
+                    showNotification('Data save verification failed', 'error');
+                    return false;
+                }
             } catch (e) {
                 console.error('Error saving users:', e);
+                console.error('Error type:', e.name);
+                console.error('Error message:', e.message);
+                
+                if (e.name === 'QuotaExceededError') {
+                    showNotification('Storage quota exceeded - cannot save data', 'error');
+                } else {
+                    showNotification('Cannot save data on this device', 'error');
+                }
+                return false;
             }
         }
 
@@ -925,22 +1104,49 @@
             document.getElementById(elementId).classList.remove('hidden');
         }
 
-        // Authentication
+        // Enhanced authentication with mobile debugging
         function login() {
+            console.log('=== LOGIN ATTEMPT ===');
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             const loginMode = document.querySelector('input[name="loginMode"]:checked').value;
             
+            console.log('Login email:', email);
+            console.log('Login mode:', loginMode);
+            console.log('Available users count:', users.length);
+            console.log('Available users:', users.map(u => ({ 
+                email: u.email, 
+                firstName: u.firstName, 
+                hasPassword: !!u.password 
+            })));
+            
             const user = users.find(u => u.email.toLowerCase() === email && u.password === password);
+            console.log('User found:', !!user);
             
             if (user) {
+                console.log('Login successful for:', user.firstName);
                 currentUser = user;
-                localStorage.setItem('tennisUser', JSON.stringify(user));
-                localStorage.setItem('loginMode', loginMode); // Remember the chosen mode
+                
+                // Try to save user session
+                try {
+                    if (isLocalStorageAvailable()) {
+                        localStorage.setItem('tennisUser', JSON.stringify(user));
+                        localStorage.setItem('loginMode', loginMode);
+                        console.log('User session saved to localStorage');
+                    } else {
+                        console.log('Cannot save user session - localStorage not available');
+                        showNotification('Session will not persist (storage limited)', 'error');
+                    }
+                } catch (e) {
+                    console.log('Error saving user session:', e);
+                    showNotification('Session may not persist', 'error');
+                }
+                
                 document.getElementById('welcomeUser').textContent = `Welcome, ${user.firstName}!`;
                 
                 // Use the toggle choice to determine view, but only if user has admin rights
                 const showAdminView = (loginMode === 'admin' && user.isAdmin);
+                console.log('Show admin view:', showAdminView);
                 
                 if (showAdminView) {
                     document.getElementById('adminNav').classList.remove('hidden');
@@ -960,8 +1166,10 @@
                 updateAdminStats();
                 showNotification(`Welcome back${showAdminView ? ' (Admin Mode)' : ''}!`);
             } else {
+                console.log('Login failed - invalid credentials');
                 showNotification('Invalid credentials', 'error');
             }
+            console.log('=== END LOGIN ===');
         }
 
         function register() {
@@ -2265,31 +2473,71 @@
             }
         }
 
-        // Initialize app
+        // Enhanced app initialization with mobile debugging
         function init() {
+            console.log('=== APP INITIALIZATION ===');
+            console.log('Starting app initialization...');
+            
+            // Run mobile storage debugging first
+            debugMobileStorage();
+            
             // First, try to migrate any existing data
             migrateExistingData();
             
             // Reload users and events after potential migration
+            console.log('Loading app data...');
             users = loadUsers();
             events = loadEvents();
             courts = loadCourts();
             opponents = loadOpponents();
             
+            console.log('Loaded data summary:');
+            console.log('- Users:', users.length);
+            console.log('- Events:', events.length);
+            console.log('- Courts:', courts.length);
+            console.log('- Opponents:', opponents.length);
+            
             // Update dropdowns with current data
             updateCourtDropdowns();
             updateOpponentDropdowns();
             
-            // Check for saved user
-            const savedUser = localStorage.getItem('tennisUser');
+            // Check for saved user session
+            console.log('Checking for saved user session...');
+            let savedUser = null;
+            
+            try {
+                if (isLocalStorageAvailable()) {
+                    savedUser = localStorage.getItem('tennisUser');
+                    console.log('Saved user data found:', !!savedUser);
+                } else {
+                    console.log('localStorage not available - no saved session');
+                }
+            } catch (e) {
+                console.log('Error accessing saved user:', e);
+            }
+            
             if (savedUser) {
                 try {
                     currentUser = JSON.parse(savedUser);
+                    console.log('Restored user session for:', currentUser.firstName);
+                    
+                    // Verify user still exists in current users array
+                    const userExists = users.find(u => u.id === currentUser.id);
+                    if (!userExists) {
+                        console.log('Saved user no longer exists in users array');
+                        localStorage.removeItem('tennisUser');
+                        localStorage.removeItem('loginMode');
+                        show('loginScreen');
+                        showNotification('Your account was not found. Please log in again.', 'error');
+                        return;
+                    }
+                    
                     document.getElementById('welcomeUser').textContent = `Welcome, ${currentUser.firstName}!`;
                     
                     // Check saved login mode preference
                     const savedMode = localStorage.getItem('loginMode') || 'player';
                     const showAdminView = (savedMode === 'admin' && currentUser.isAdmin);
+                    console.log('Restored mode:', savedMode, 'Show admin view:', showAdminView);
                     
                     if (showAdminView) {
                         document.getElementById('adminNav').classList.remove('hidden');
@@ -2310,12 +2558,19 @@
                     renderCalendar();
                     updateStats();
                     updateAdminStats();
+                    
+                    console.log('User session restored successfully');
                 } catch (e) {
+                    console.log('Error restoring user session:', e);
                     show('loginScreen');
+                    showNotification('Session restore failed. Please log in again.', 'error');
                 }
             } else {
+                console.log('No saved user session - showing login screen');
                 show('loginScreen');
             }
+            
+            console.log('=== APP INITIALIZATION COMPLETE ===');
         }
 
         // Start the app
