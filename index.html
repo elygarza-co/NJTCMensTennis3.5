@@ -1,2600 +1,365 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>My Tennis Scheduler - Team Management</title>
-<style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: Arial, sans-serif; 
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%),
-                        url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80') center/cover no-repeat;
-            min-height: 100vh;
-            background-attachment: fixed;
-        }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .card { 
-            background: white; 
-            border-radius: 15px; 
-            padding: 20px; 
-            margin-bottom: 20px; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        }
-        .btn { 
-            background: #667eea; 
-            color: white; 
-            border: none; 
-            padding: 10px 20px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            margin: 5px;
-            font-size: 14px;
-        }
-        .btn:hover { background: #5a6fd8; }
-        .btn-secondary { background: #6c757d; }
-        .btn-danger { background: #dc3545; }
-        .btn-success { background: #28a745; }
-        .btn-warning { background: #ffc107; color: #212529; }
-        .btn-small { padding: 5px 10px; font-size: 12px; }
-        .form-control { 
-            width: 100%; 
-            padding: 10px; 
-            border: 1px solid #ddd; 
-            border-radius: 5px; 
-            margin-bottom: 10px;
-        }
-        .login-container { 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            min-height: 100vh; 
-        }
-        .login-card { 
-            background: rgba(255, 255, 255, 0.95); 
-            backdrop-filter: blur(10px);
-            padding: 40px; 
-            border-radius: 15px; 
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            max-width: 400px;
-            width: 100%;
-        }
-        .header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 20px;
-        }
-        .logo { font-size: 24px; font-weight: bold; color: #667eea; }
-        .notification { 
-            position: fixed; 
-            top: 20px; 
-            right: 20px; 
-            padding: 15px; 
-            border-radius: 5px; 
-            color: white; 
-            z-index: 1000;
-            transform: translateX(400px);
-            transition: transform 0.3s;
-        }
-        .notification.show { transform: translateX(0); }
-        .notification.success { background: #28a745; }
-        .notification.error { background: #dc3545; }
-        .modal { 
-            display: none; 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            background: rgba(0,0,0,0.5); 
-            z-index: 1000;
-        }
-        .modal.show { display: flex; align-items: center; justify-content: center; }
-        .modal-content { 
-            background: white; 
-            padding: 30px; 
-            border-radius: 15px; 
-            max-width: 600px; 
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        .calendar-grid { 
-            display: grid; 
-            grid-template-columns: repeat(7, 1fr); 
-            gap: 1px; 
-            background: #ddd;
-        }
-        .calendar-day { 
-            background: white; 
-            padding: 10px; 
-            min-height: 60px; 
-            cursor: pointer; 
-            border: 1px solid #eee;
-        }
-        .calendar-day:hover { background: #f0f0f0; }
-        .calendar-day.today { background: #fff3cd; }
-        .event-dot { 
-            width: 8px; 
-            height: 8px; 
-            background: #28a745; 
-            border-radius: 50%; 
-            float: right;
-        }
-        .event-item { 
-            background: #f8f9fa; 
-            padding: 15px; 
-            margin-bottom: 10px; 
-            border-radius: 5px; 
-            cursor: pointer;
-            border-left: 4px solid #667eea;
-        }
-        .event-item:hover { background: #e9ecef; }
-        .hidden { display: none; }
-        .admin-nav {
-            background: #343a40;
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        .admin-nav button {
-            background: #495057;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            margin: 0 5px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .admin-nav button.active {
-            background: #667eea;
-        }
-        .admin-nav button:hover {
-            background: #6c757d;
-        }
-        .user-table, .event-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        .user-table th, .user-table td,
-        .event-table th, .event-table td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-        .user-table th, .event-table th {
-            background: #f8f9fa;
-            font-weight: bold;
-        }
-        .user-table tr:hover, .event-table tr:hover {
-            background: #f5f5f5;
-        }
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .admin-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .stat-card {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-        }
-        .stat-number {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        .stat-label {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-    </style>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>My Tennis Scheduler - Team Management</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f5f5; }
+    .container { max-width: 1000px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 30px; }
+    .hidden { display: none; }
+    .btn { background: #667eea; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin: 5px; }
+    .btn-danger { background: #dc3545; }
+    .btn-secondary { background: #6c757d; }
+    .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; }
+    .notification { position: fixed; top: 20px; right: 20px; padding: 15px; border-radius: 5px; color: white; z-index: 1000; display: none; }
+    .notification.show { display: block; }
+    .notification.success { background: #28a745; }
+    .notification.error { background: #dc3545; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+    th { background: #f8f9fa; font-weight: bold; }
+    tr:hover { background: #f5f5f5; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal.show { display: flex; }
+    .modal-content { background: #fff; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%; }
+    .modal-content h3 { margin-top: 0; }
+  </style>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script>
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDzyoa2w16n-T0ULmBE3OwM74cLaPeS_7g",
+      authDomain: "my-tennis-scheduler.firebaseapp.com",
+      projectId: "my-tennis-scheduler",
+      storageBucket: "my-tennis-scheduler.firebasestorage.app",
+      messagingSenderId: "953557491447",
+      appId: "1:953557491447:web:a823f2d629d38448673df2",
+      measurementId: "G-KFTTHYMKET"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+  </script>
 </head>
 <body>
-<!-- Login Screen -->
-<div class="login-container" id="loginScreen">
-<div class="login-card">
-<h2 style="text-align: center; margin-bottom: 30px; color: #667eea;">🎾 My Tennis Scheduler</h2>
-<!-- Mobile Debug Panel -->
-<div id="debugPanel" style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin-bottom: 15px; font-size: 12px; display: none;">
-<div style="font-weight: bold; margin-bottom: 5px;">📱 Mobile Debug Info:</div>
-<div id="debugInfo">Loading...</div>
-<button onclick="toggleDebugPanel()" style="background: none; border: none; color: #667eea; font-size: 11px; margin-top: 5px;">Hide Debug</button>
-</div>
-<input class="form-control" id="email" placeholder="Email" type="email"/>
-<input class="form-control" id="password" placeholder="Password" type="password"/>
-<div style="margin: 15px 0; text-align: center;">
-<label style="font-weight: bold; color: #667eea; margin-bottom: 10px; display: block;">Login As:</label>
-<div style="display: flex; justify-content: center; gap: 20px;">
-<label style="display: flex; align-items: center; cursor: pointer;">
-<input checked="" name="loginMode" style="margin-right: 8px;" type="radio" value="player"/>
-<span>🎾 Player</span>
-</label>
-<label style="display: flex; align-items: center; cursor: pointer;">
-<input name="loginMode" style="margin-right: 8px;" type="radio" value="admin"/>
-<span>🛠️ Admin</span>
-</label>
-</div>
-</div>
-<button class="btn" onclick="login()" style="width: 100%;">Sign In</button>
-<button class="btn btn-secondary" onclick="showRegister()" style="width: 100%;">Create Account</button>
-<!-- Debug Toggle Button -->
-<button onclick="toggleDebugPanel()" style="background: none; border: none; color: #667eea; font-size: 11px; margin-top: 10px; width: 100%;">Show Mobile Debug Info</button>
-<!-- Default Credentials Info -->
-<div style="margin-top: 15px; padding: 10px; background: #e7f3ff; border-radius: 5px; font-size: 12px; text-align: center;">
-<strong>Default Admin:</strong><br/>
-Email: admin@tennis.com<br/>
-Password: admin123
-</div>
-</div>
-</div>
-<!-- Registration Screen -->
-<div class="login-container hidden" id="registerScreen">
-<div class="login-card">
-<h2 style="text-align: center; margin-bottom: 30px; color: #667eea;">Join the Team</h2>
-<input class="form-control" id="regFirstName" placeholder="First Name" type="text"/>
-<input class="form-control" id="regLastName" placeholder="Last Name" type="text"/>
-<input class="form-control" id="regEmail" placeholder="Email" type="email"/>
-<input class="form-control" id="regPassword" placeholder="Password" type="password"/>
-<button class="btn" onclick="register()" style="width: 100%;">Create Account</button>
-<button class="btn btn-secondary" onclick="showLogin()" style="width: 100%;">Back to Login</button>
-</div>
-</div>
-<!-- Main App -->
-<div class="hidden" id="mainApp">
-<div class="container">
-<div class="card">
-<div class="header">
-<div class="logo">🎾 My Tennis Scheduler</div>
-<div>
-<span id="welcomeUser">Welcome!</span>
-<div class="hidden" id="modeSwitcher" style="display: inline-block; margin: 0 10px;">
-<button class="btn btn-small" id="playerModeBtn" onclick="switchToPlayerMode()">🎾 Player View</button>
-<button class="btn btn-small" id="adminModeBtn" onclick="switchToAdminMode()">🛠️ Admin View</button>
-</div>
-<button class="btn" onclick="showProfile()">Profile</button>
-<button class="btn btn-secondary" onclick="logout()">Logout</button>
-</div>
-</div>
-</div>
-<!-- Admin Navigation -->
-<div class="admin-nav hidden" id="adminNav">
-<h3 style="margin-bottom: 15px;">🛠️ Admin Console</h3>
-<button class="active" id="dashboardBtn" onclick="showAdminSection('dashboard')">Dashboard</button>
-<button id="usersBtn" onclick="showAdminSection('users')">User Management</button>
-<button id="eventsBtn" onclick="showAdminSection('events')">Event Management</button>
-<button id="courtsBtn" onclick="showAdminSection('courts')">Court Management</button>
-<button id="opponentsBtn" onclick="showAdminSection('opponents')">Opponent Management</button>
-<button id="scheduleBtn" onclick="showAdminSection('schedule')">Schedule View</button>
-</div>
-<!-- Admin Dashboard -->
-<div class="card hidden" id="adminDashboard">
-<h3>📊 Admin Dashboard</h3>
-<div class="admin-stats">
-<div class="stat-card">
-<div class="stat-number" id="totalUsers">0</div>
-<div class="stat-label">Total Users</div>
-</div>
-<div class="stat-card">
-<div class="stat-number" id="totalEvents">0</div>
-<div class="stat-label">Total Events</div>
-</div>
-<div class="stat-card">
-<div class="stat-number" id="upcomingEvents">0</div>
-<div class="stat-label">Upcoming Events</div>
-</div>
-<div class="stat-card">
-<div class="stat-number" id="pendingRSVPs">0</div>
-<div class="stat-label">Pending RSVPs</div>
-</div>
-</div>
-<h4>Recent Activity</h4>
-<div id="recentActivity">
-<p>• System initialized</p>
-<p>• Admin user logged in</p>
-</div>
-</div>
-<!-- User Management -->
-<div class="card hidden" id="userManagement">
-<div class="header">
-<h3>👥 User Management</h3>
-<button class="btn" onclick="showCreateUser()">Add New User</button>
-</div>
-<table class="user-table">
-<thead>
-<tr>
-<th>Name</th>
-<th>Email</th>
-<th>Role</th>
-<th>Available Practice</th>
-<th>Available Matches</th>
-<th>Actions</th>
-</tr>
-</thead>
-<tbody id="userTableBody">
-<!-- Users will be populated here -->
-</tbody>
-</table>
-</div>
-<!-- Court Management -->
-<div class="card hidden" id="courtManagement">
-<div class="header">
-<h3>🏟️ Court Management</h3>
-<button class="btn" onclick="showCreateCourt()">Add New Court</button>
-</div>
-<table class="user-table">
-<thead>
-<tr>
-<th>Court Name</th>
-<th>Location</th>
-<th>Type</th>
-<th>Actions</th>
-</tr>
-</thead>
-<tbody id="courtTableBody">
-<!-- Courts will be populated here -->
-</tbody>
-</table>
-</div>
-<!-- Opponent Management -->
-<div class="card hidden" id="opponentManagement">
-<div class="header">
-<h3>⚔️ Opponent Management</h3>
-<button class="btn" onclick="showCreateOpponent()">Add New Opponent</button>
-</div>
-<table class="user-table">
-<thead>
-<tr>
-<th>Team Name</th>
-<th>Contact</th>
-<th>League</th>
-<th>Record vs Us</th>
-<th>Actions</th>
-</tr>
-</thead>
-<tbody id="opponentTableBody">
-<!-- Opponents will be populated here -->
-</tbody>
-</table>
-</div>
-<!-- Event Management -->
-<div class="card hidden" id="eventManagement">
-<div class="header">
-<h3>📅 Event Management</h3>
-<button class="btn" onclick="showCreateEventAdmin()">Create New Event</button>
-</div>
-<table class="event-table">
-<thead>
-<tr>
-<th>Event</th>
-<th>Type</th>
-<th>Date</th>
-<th>Time</th>
-<th>Location</th>
-<th>RSVPs</th>
-<th>Actions</th>
-</tr>
-</thead>
-<tbody id="eventTableBody">
-<!-- Events will be populated here -->
-</tbody>
-</table>
-</div>
-<!-- Regular Schedule View -->
-<div class="card" id="scheduleView">
-<div class="header">
-<h3>My Schedule</h3>
-<div id="regularControls">
-<button class="btn" onclick="showCreateEvent()">Add Event</button>
-</div>
-</div>
-<div style="margin-bottom: 20px;">
-<button class="btn" id="calendarBtn" onclick="switchView('calendar')">Calendar</button>
-<button class="btn btn-secondary" id="listBtn" onclick="switchView('list')">List</button>
-</div>
-<!-- Calendar View -->
-<div id="calendarView">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-<button class="btn btn-secondary" onclick="previousMonth()">‹</button>
-<h3 id="monthHeader">April 2026</h3>
-<button class="btn btn-secondary" onclick="nextMonth()">›</button>
-</div>
-<div class="calendar-grid" id="calendar"></div>
-</div>
-<!-- List View -->
-<div class="hidden" id="listView">
-<div id="eventsList"></div>
-</div>
-</div>
-<!-- Stats (for non-admin users) -->
-<div class="card" id="regularStats">
-<h3>Quick Stats</h3>
-<p>Upcoming Matches: <span id="upcomingMatches">0</span></p>
-<p>My RSVPs: <span id="myRSVPs">0</span></p>
-<p>Team Members: <span id="teamMemberCount">15</span></p>
-</div>
-</div>
-</div>
-<!-- Event Modal -->
-<div class="modal" id="eventModal">
-<div class="modal-content">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-<h3 id="eventTitle">Event Details</h3>
-<button onclick="closeModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
-</div>
-<div id="eventContent"></div>
-</div>
-</div>
-<!-- Create/Edit Event Modal -->
-<div class="modal" id="createEventModal">
-<div class="modal-content">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-<h3 id="createEventTitle">Create Event</h3>
-<button onclick="closeCreateModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
-</div>
-<input id="editEventId" type="hidden"/>
-<div class="form-row">
-<div>
-<label class="form-label">Event Type</label>
-<select class="form-control" id="eventType">
-<option value="match">Match</option>
-<option value="practice">Practice</option>
-<option value="social">Social Event</option>
-</select>
-</div>
-<div>
-<label class="form-label">Date</label>
-<input class="form-control" id="eventDate" type="date"/>
-</div>
-</div>
-<div class="form-row">
-<div>
-<label class="form-label">Time</label>
-<input class="form-control" id="eventTime" type="time" value="18:00"/>
-</div>
-<div>
-<label class="form-label">Court Location</label>
-<select class="form-control" id="courtLocation">
-<option value="">Select Court...</option>
-</select>
-</div>
-</div>
-<div class="form-row">
-<div>
-<label class="form-label">Opponent</label>
-<select class="form-control" id="opponent">
-<option value="">Select Opponent...</option>
-</select>
-</div>
-<div>
-<label class="form-label">Home/Away</label>
-<select class="form-control" id="homeAway">
-<option value="">Select...</option>
-<option value="Home">🏠 Home</option>
-<option value="Away">✈️ Away</option>
-</select>
-</div>
-</div>
-<div class="form-group">
-<label class="form-label">Description/Notes</label>
-<textarea class="form-control" id="eventDescription" placeholder="Description/Notes" rows="3"></textarea>
-</div>
-<div class="form-group" id="playerAssignmentSection">
-<label class="form-label">Player Assignments (for matches)</label>
-<div id="playerAssignments">
-<div class="form-row">
-<div>
-<label class="form-label">#1 Singles</label>
-<select class="form-control" id="position1Singles">
-<option value="">Select Player...</option>
-</select>
-</div>
-<div>
-<label class="form-label">#2 Singles</label>
-<select class="form-control" id="position2Singles">
-<option value="">Select Player...</option>
-</select>
-</div>
-</div>
-<div class="form-row">
-<div>
-<label class="form-label">#1 Doubles</label>
-<select class="form-control" id="position1Doubles">
-<option value="">Select Player...</option>
-</select>
-</div>
-<div>
-<label class="form-label">#2 Doubles</label>
-<select class="form-control" id="position2Doubles">
-<option value="">Select Player...</option>
-</select>
-</div>
-</div>
-<div class="form-row">
-<div>
-<label class="form-label">#3 Doubles</label>
-<select class="form-control" id="position3Doubles">
-<option value="">Select Player...</option>
-</select>
-</div>
-<div></div>
-</div>
-</div>
-</div>
-<button class="btn" id="saveEventBtn" onclick="saveEvent()">Create Event</button>
-</div>
-</div>
-<!-- User Edit Modal -->
-<div class="modal" id="userEditModal">
-<div class="modal-content">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-<h3 id="userEditTitle">Edit User</h3>
-<button onclick="closeUserEditModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
-</div>
-<input id="editUserId" type="hidden"/>
-<div class="form-row">
-<div>
-<label class="form-label">First Name</label>
-<input class="form-control" id="editFirstName" type="text"/>
-</div>
-<div>
-<label class="form-label">Last Name</label>
-<input class="form-control" id="editLastName" type="text"/>
-</div>
-</div>
-<div class="form-group">
-<label class="form-label">Email</label>
-<input class="form-control" id="editEmail" type="email"/>
-</div>
-<div class="form-group">
-<label class="form-label">New Password (leave blank to keep current)</label>
-<input class="form-control" id="editPassword" placeholder="Enter new password" type="password"/>
-</div>
-<div class="form-row">
-<div>
-<label>
-<input id="editIsAdmin" type="checkbox"/> Admin User
-                    </label>
-</div>
-<div>
-<label>
-<input id="editAvailPractice" type="checkbox"/> Available for Practice
-                    </label>
-</div>
-</div>
-<div class="form-group">
-<label>
-<input id="editAvailMatches" type="checkbox"/> Available for Matches
-                </label>
-</div>
-<div class="form-group">
-<label class="form-label">Preferred Days</label>
-<textarea class="form-control" id="editPreferredDays" rows="2"></textarea>
-</div>
-<div class="form-group">
-<label class="form-label">Unavailable Dates</label>
-<textarea class="form-control" id="editUnavailableDates" rows="2"></textarea>
-</div>
-<button class="btn" onclick="saveUser()">Save Changes</button>
-</div>
-</div>
-<!-- Court Edit Modal -->
-<div class="modal" id="courtEditModal">
-<div class="modal-content">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-<h3 id="courtEditTitle">Edit Court</h3>
-<button onclick="closeCourtEditModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
-</div>
-<input id="editCourtId" type="hidden"/>
-<div class="form-group">
-<label class="form-label">Court Name</label>
-<input class="form-control" id="editCourtName" placeholder="e.g., Court 1, Indoor Court A" type="text"/>
-</div>
-<div class="form-group">
-<label class="form-label">Location/Facility</label>
-<input class="form-control" id="editCourtLocation" placeholder="e.g., Apex Tennis Center" type="text"/>
-</div>
-<div class="form-group">
-<label class="form-label">Court Type</label>
-<select class="form-control" id="editCourtType">
-<option value="Indoor">Indoor</option>
-<option value="Outdoor">Outdoor</option>
-<option value="Clay">Clay</option>
-<option value="Hard">Hard Court</option>
-<option value="Grass">Grass</option>
-</select>
-</div>
-<div class="form-group">
-<label class="form-label">Notes</label>
-<textarea class="form-control" id="editCourtNotes" placeholder="Additional information about this court" rows="2"></textarea>
-</div>
-<button class="btn" onclick="saveCourt()">Save Court</button>
-</div>
-</div>
-<!-- Opponent Edit Modal -->
-<div class="modal" id="opponentEditModal">
-<div class="modal-content">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-<h3 id="opponentEditTitle">Edit Opponent</h3>
-<button onclick="closeOpponentEditModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
-</div>
-<input id="editOpponentId" type="hidden"/>
-<div class="form-group">
-<label class="form-label">Team Name</label>
-<input class="form-control" id="editOpponentName" placeholder="e.g., Eagles Tennis Team" type="text"/>
-</div>
-<div class="form-group">
-<label class="form-label">Contact Person</label>
-<input class="form-control" id="editOpponentContact" placeholder="Captain or contact name" type="text"/>
-</div>
-<div class="form-group">
-<label class="form-label">Contact Email</label>
-<input class="form-control" id="editOpponentEmail" placeholder="contact@team.com" type="email"/>
-</div>
-<div class="form-group">
-<label class="form-label">Phone</label>
-<input class="form-control" id="editOpponentPhone" placeholder="(555) 123-4567" type="tel"/>
-</div>
-<div class="form-group">
-<label class="form-label">League/Division</label>
-<input class="form-control" id="editOpponentLeague" placeholder="e.g., USTA 4.0, Local League" type="text"/>
-</div>
-<div class="form-group">
-<label class="form-label">Notes</label>
-<textarea class="form-control" id="editOpponentNotes" placeholder="Additional information about this team" rows="2"></textarea>
-</div>
-<button class="btn" onclick="saveOpponent()">Save Opponent</button>
-</div>
-</div>
-<!-- Historical Update Confirmation Modal -->
-<div class="modal" id="historicalUpdateModal">
-<div class="modal-content">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-<h3>⚠️ Update Historical Data?</h3>
-<button onclick="closeHistoricalModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
-</div>
-<p id="historicalMessage">This change will affect past events. Do you want to update historical records?</p>
-<div style="margin-top: 20px;">
-<button class="btn btn-danger" onclick="confirmHistoricalUpdate(true)">Yes, Update All Records</button>
-<button class="btn btn-secondary" onclick="confirmHistoricalUpdate(false)">No, Keep Historical Data</button>
-</div>
-</div>
-</div>
-<!-- Profile Modal -->
-<div class="modal" id="profileModal">
-<div class="modal-content">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-<h3>My Profile</h3>
-<button onclick="closeProfileModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
-</div>
-<input class="form-control" id="profileFirstName" placeholder="First Name" type="text"/>
-<input class="form-control" id="profileLastName" placeholder="Last Name" type="text"/>
-<input class="form-control" id="profileEmail" placeholder="Email" type="email"/>
-<textarea class="form-control" id="preferredDays" placeholder="Preferred match days" rows="2"></textarea>
-<textarea class="form-control" id="unavailableDates" placeholder="Unavailable dates" rows="2"></textarea>
-<div id="scheduledMatches" style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-<!-- Scheduled matches will be populated here -->
-</div>
-<button class="btn" onclick="updateProfile()">Update Profile</button>
-</div>
-</div>
-<!-- Notification -->
-<div class="notification" id="notification"></div>
-<script>
-        // Global variables
-        let currentUser = null;
-        let currentView = 'calendar';
-        let currentDate = new Date();
-        let currentAdminSection = 'dashboard';
-        let events = [];
-        
-        // Enhanced localStorage availability check with mobile debugging
-        function isLocalStorageAvailable() {
-            try {
-                const test = '__localStorage_test__';
-                localStorage.setItem(test, test);
-                const retrieved = localStorage.getItem(test);
-                localStorage.removeItem(test);
-                
-                console.log('localStorage test - stored and retrieved:', retrieved === test);
-                return retrieved === test;
-            } catch (e) {
-                console.log('localStorage not available:', e);
-                console.log('Error type:', e.name);
-                console.log('Error message:', e.message);
-                return false;
-            }
-        }
-
-        // Mobile-specific storage debugging
-        function debugMobileStorage() {
-            console.log('=== MOBILE STORAGE DEBUG ===');
-            console.log('User Agent:', navigator.userAgent);
-            console.log('Is mobile device:', /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
-            console.log('Is iOS:', /iPad|iPhone|iPod/.test(navigator.userAgent));
-            console.log('Is Android:', /Android/.test(navigator.userAgent));
-            console.log('Is in standalone mode (PWA):', window.navigator.standalone);
-            console.log('Is private browsing (estimated):', !window.indexedDB);
-            console.log('localStorage available:', isLocalStorageAvailable());
-            
-            try {
-                console.log('localStorage length:', localStorage.length);
-                console.log('localStorage keys:', Object.keys(localStorage));
-            } catch (e) {
-                console.log('Cannot access localStorage:', e);
-            }
-            
-            console.log('sessionStorage available:', typeof(Storage) !== "undefined" && sessionStorage);
-            console.log('=== END DEBUG ===');
-            
-            // Update debug panel if it exists
-            updateDebugPanel();
-        }
-
-        // Update debug panel with current info
-        function updateDebugPanel() {
-            const debugInfo = document.getElementById('debugInfo');
-            if (!debugInfo) return;
-            
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-            const isAndroid = /Android/.test(navigator.userAgent);
-            const isPrivate = !window.indexedDB;
-            const storageAvailable = isLocalStorageAvailable();
-            
-            let storageKeys = [];
-            try {
-                storageKeys = Object.keys(localStorage);
-            } catch (e) {
-                storageKeys = ['Error accessing storage'];
-            }
-            
-            debugInfo.innerHTML = `
-                <div>📱 Mobile: ${isMobile ? 'Yes' : 'No'} ${isIOS ? '(iOS)' : ''} ${isAndroid ? '(Android)' : ''}</div>
-                <div>🔒 Private Mode: ${isPrivate ? 'Likely' : 'No'}</div>
-                <div>💾 Storage Available: ${storageAvailable ? 'Yes' : 'No'}</div>
-                <div>👥 Users Loaded: ${users.length}</div>
-                <div>🗂️ Storage Keys: ${storageKeys.length > 0 ? storageKeys.join(', ') : 'None'}</div>
-                <div style="margin-top: 5px; font-size: 10px; color: #666;">
-                    ${!storageAvailable ? '⚠️ Storage issues detected - accounts may not persist' : '✅ Storage working normally'}
-                </div>
-            `;
-        }
-
-        // Toggle debug panel visibility
-        function toggleDebugPanel() {
-            const panel = document.getElementById('debugPanel');
-            const button = event.target;
-            
-            if (panel.style.display === 'none' || !panel.style.display) {
-                panel.style.display = 'block';
-                button.textContent = 'Hide Mobile Debug Info';
-                updateDebugPanel();
-            } else {
-                panel.style.display = 'none';
-                button.textContent = 'Show Mobile Debug Info';
-            }
-        }
-
-        // Enhanced user loading with mobile fallbacks
-        function loadUsers() {
-            console.log('Loading users...');
-            debugMobileStorage();
-            
-            if (!isLocalStorageAvailable()) {
-                console.log('Using default users (localStorage not available)');
-                showNotification('Using default accounts (storage limited on this device)', 'error');
-                return getDefaultUsers();
-            }
-            
-            try {
-                const savedUsers = localStorage.getItem('tennisUsers');
-                console.log('Saved users raw:', savedUsers);
-                console.log('Saved users type:', typeof savedUsers);
-                console.log('Saved users length:', savedUsers ? savedUsers.length : 'null');
-                
-                if (savedUsers && savedUsers !== 'null' && savedUsers !== 'undefined') {
-                    const parsed = JSON.parse(savedUsers);
-                    console.log('Parsed users:', parsed);
-                    console.log('Parsed users is array:', Array.isArray(parsed));
-                    console.log('Parsed users length:', parsed ? parsed.length : 'null');
-                    
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        console.log('Using saved users:', parsed.length, 'users');
-                        // Verify each user has required fields
-                        const validUsers = parsed.filter(user => 
-                            user && user.email && user.password && user.firstName
-                        );
-                        console.log('Valid users after filtering:', validUsers.length);
-                        
-                        if (validUsers.length > 0) {
-                            return validUsers;
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('Error loading users from localStorage:', e);
-                console.log('Error details:', e.name, e.message);
-            }
-            
-            console.log('Using default users (fallback)');
-            const defaultUsers = getDefaultUsers();
-            
-            // Try to save default users immediately for mobile devices
-            try {
-                if (isLocalStorageAvailable()) {
-                    localStorage.setItem('tennisUsers', JSON.stringify(defaultUsers));
-                    console.log('Saved default users to localStorage');
-                }
-            } catch (e) {
-                console.log('Could not save default users:', e);
-            }
-            
-            return defaultUsers;
-        }
-
-        function getDefaultUsers() {
-            return [
-            {
-                id: 1,
-                firstName: 'Admin',
-                lastName: 'User',
-                email: 'admin@tennis.com',
-                password: 'admin123',
-                isAdmin: true,
-                availablePractice: true,
-                availableMatches: true,
-                preferredDays: 'Any Tuesday',
-                unavailableDates: ''
-            },
-            {
-                id: 2,
-                firstName: 'John',
-                lastName: 'Smith',
-                email: 'john@tennis.com',
-                password: 'player123',
-                isAdmin: false,
-                availablePractice: true,
-                availableMatches: true,
-                preferredDays: 'First and third Tuesday',
-                unavailableDates: 'May 15-20'
-            },
-            {
-                id: 3,
-                firstName: 'Sarah',
-                lastName: 'Johnson',
-                email: 'sarah@tennis.com',
-                password: 'player123',
-                isAdmin: false,
-                availablePractice: false,
-                availableMatches: true,
-                preferredDays: 'Any Tuesday',
-                unavailableDates: 'June 10-15'
-            }];
-        }
-
-        let users = loadUsers();
-
-        // Enhanced save users with mobile debugging
-        function saveUsers() {
-            console.log('Attempting to save users...');
-            console.log('Users to save:', users.length, 'users');
-            
-            if (!isLocalStorageAvailable()) {
-                console.log('Cannot save users - localStorage not available');
-                showNotification('Cannot save data on this device (storage limited)', 'error');
-                return false;
-            }
-            
-            try {
-                const usersJson = JSON.stringify(users);
-                console.log('Users JSON length:', usersJson.length);
-                
-                localStorage.setItem('tennisUsers', usersJson);
-                console.log('Users saved successfully');
-                
-                // Verify save worked
-                const verification = localStorage.getItem('tennisUsers');
-                if (verification && verification.length > 0) {
-                    console.log('Save verification successful');
-                    return true;
-                } else {
-                    console.log('Save verification failed - data not found after save');
-                    showNotification('Data save verification failed', 'error');
-                    return false;
-                }
-            } catch (e) {
-                console.error('Error saving users:', e);
-                console.error('Error type:', e.name);
-                console.error('Error message:', e.message);
-                
-                if (e.name === 'QuotaExceededError') {
-                    showNotification('Storage quota exceeded - cannot save data', 'error');
-                } else {
-                    showNotification('Cannot save data on this device', 'error');
-                }
-                return false;
-            }
-        }
-
-        // Load events from localStorage or use defaults
-        function loadEvents() {
-            try {
-                const savedEvents = localStorage.getItem('tennisEvents');
-                if (savedEvents && savedEvents !== 'null') {
-                    const parsed = JSON.parse(savedEvents);
-                    if (Array.isArray(parsed)) {
-                        return parsed;
-                    }
-                }
-            } catch (e) {
-                console.log('Error loading events from localStorage:', e);
-            }
-            
-            return [
-            {
-                id: 1,
-                type: 'match',
-                title: '🏠 vs Eagles Tennis Team',
-                date: '2026-04-08',
-                time: '18:00',
-                court: 'Apex Tennis Center - Indoor Court 1',
-                opponent: 'Eagles Tennis Team',
-                homeAway: 'Home',
-                description: 'Season opener',
-                rsvps: { 1: 'yes', 2: 'maybe', 3: 'pending' }
-            },
-            {
-                id: 2,
-                type: 'practice',
-                title: 'Team Practice',
-                date: '2026-04-05',
-                time: '10:00',
-                court: 'Arvada Tennis Center - Court 1',
-                description: 'Pre-season practice',
-                rsvps: { 1: 'yes', 2: 'yes', 3: 'no' }
-            },
-            {
-                id: 3,
-                type: 'match',
-                title: '✈️ vs Hawks Tennis Club',
-                date: '2026-04-15',
-                time: '18:00',
-                court: 'Clear Creek Valley Park - Court 1',
-                opponent: 'Hawks Tennis Club',
-                homeAway: 'Away',
-                description: 'League match',
-                rsvps: { 1: 'pending', 2: 'pending', 3: 'pending' }
-            }
-        ];
-        }
-
-        events = loadEvents();
-
-        // Save events to localStorage
-        function saveEvents() {
-            try {
-                localStorage.setItem('tennisEvents', JSON.stringify(events));
-            } catch (e) {
-                console.error('Error saving events:', e);
-            }
-        }
-
-        // Load courts from localStorage or use defaults
-        function loadCourts() {
-            try {
-                const savedCourts = localStorage.getItem('tennisCourts');
-                if (savedCourts && savedCourts !== 'null') {
-                    const parsed = JSON.parse(savedCourts);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        return parsed;
-                    }
-                }
-            } catch (e) {
-                console.log('Error loading courts from localStorage:', e);
-            }
-            
-            return [
-                { id: 1, name: 'Indoor Court 1', location: 'Apex Tennis Center', type: 'Indoor', notes: '' },
-                { id: 2, name: 'Indoor Court 2', location: 'Apex Tennis Center', type: 'Indoor', notes: '' },
-                { id: 3, name: 'Outdoor Court A', location: 'Apex Tennis Center', type: 'Outdoor', notes: '' },
-                { id: 4, name: 'Outdoor Court B', location: 'Apex Tennis Center', type: 'Outdoor', notes: '' },
-                { id: 5, name: 'Court 1', location: 'Arvada Tennis Center', type: 'Outdoor', notes: '' },
-                { id: 6, name: 'Court 2', location: 'Arvada Tennis Center', type: 'Outdoor', notes: '' },
-                { id: 7, name: 'Court 1', location: 'North Jeffco Park', type: 'Outdoor', notes: '' },
-                { id: 8, name: 'Court 2', location: 'North Jeffco Park', type: 'Outdoor', notes: '' },
-                { id: 9, name: 'Court 1', location: 'Majestic View Park', type: 'Outdoor', notes: '' },
-                { id: 10, name: 'Court 1', location: 'Clear Creek Valley Park', type: 'Outdoor', notes: '' },
-                { id: 11, name: 'Court 2', location: 'Clear Creek Valley Park', type: 'Outdoor', notes: '' },
-                { id: 12, name: 'Court A', location: 'NJTC Club Courts', type: 'Indoor', notes: '' }
-            ];
-        }
-
-        // Load opponents from localStorage or use defaults
-        function loadOpponents() {
-            try {
-                const savedOpponents = localStorage.getItem('tennisOpponents');
-                if (savedOpponents && savedOpponents !== 'null') {
-                    const parsed = JSON.parse(savedOpponents);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        return parsed;
-                    }
-                }
-            } catch (e) {
-                console.log('Error loading opponents from localStorage:', e);
-            }
-            
-            return [
-                { id: 1, name: 'Eagles Tennis Team', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 },
-                { id: 2, name: 'Hawks Tennis Club', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 },
-                { id: 3, name: 'Lions Athletic Club', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 },
-                { id: 4, name: 'Tigers Tennis Academy', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 },
-                { id: 5, name: 'Panthers Sports Club', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 },
-                { id: 6, name: 'Wolves Tennis Team', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 },
-                { id: 7, name: 'Bears Athletic Club', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 },
-                { id: 8, name: 'Sharks Tennis Club', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 }
-            ];
-        }
-
-        let courts = loadCourts();
-        let opponents = loadOpponents();
-
-        // Save functions
-        function saveCourts() {
-            try {
-                localStorage.setItem('tennisCourts', JSON.stringify(courts));
-            } catch (e) {
-                console.error('Error saving courts:', e);
-            }
-        }
-
-        function saveOpponents() {
-            try {
-                localStorage.setItem('tennisOpponents', JSON.stringify(opponents));
-            } catch (e) {
-                console.error('Error saving opponents:', e);
-            }
-        }
-
-        // Helper functions to get court/opponent display names
-        function getCourtDisplayName(courtId) {
-            const court = courts.find(c => c.id == courtId);
-            return court ? `${court.location} - ${court.name}` : '';
-        }
-
-        function getOpponentDisplayName(opponentId) {
-            const opponent = opponents.find(o => o.id == opponentId);
-            return opponent ? opponent.name : '';
-        }
-
-        // Utility functions
-        function showNotification(message, type = 'success') {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.className = `notification ${type} show`;
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
-
-        function show(elementId) {
-            document.querySelectorAll('.login-container, #mainApp').forEach(el => el.classList.add('hidden'));
-            document.getElementById(elementId).classList.remove('hidden');
-        }
-
-        // Enhanced authentication with mobile debugging
-        function login() {
-            console.log('=== LOGIN ATTEMPT ===');
-            const email = document.getElementById('email').value.trim().toLowerCase();
-            const password = document.getElementById('password').value;
-            const loginMode = document.querySelector('input[name="loginMode"]:checked').value;
-            
-            console.log('Login email:', email);
-            console.log('Login mode:', loginMode);
-            console.log('Available users count:', users.length);
-            console.log('Available users:', users.map(u => ({ 
-                email: u.email, 
-                firstName: u.firstName, 
-                hasPassword: !!u.password 
-            })));
-            
-            const user = users.find(u => u.email.toLowerCase() === email && u.password === password);
-            console.log('User found:', !!user);
-            
-            if (user) {
-                console.log('Login successful for:', user.firstName);
-                currentUser = user;
-                
-                // Try to save user session
-                try {
-                    if (isLocalStorageAvailable()) {
-                        localStorage.setItem('tennisUser', JSON.stringify(user));
-                        localStorage.setItem('loginMode', loginMode);
-                        console.log('User session saved to localStorage');
-                    } else {
-                        console.log('Cannot save user session - localStorage not available');
-                        showNotification('Session will not persist (storage limited)', 'error');
-                    }
-                } catch (e) {
-                    console.log('Error saving user session:', e);
-                    showNotification('Session may not persist', 'error');
-                }
-                
-                document.getElementById('welcomeUser').textContent = `Welcome, ${user.firstName}!`;
-                
-                // Use the toggle choice to determine view, but only if user has admin rights
-                const showAdminView = (loginMode === 'admin' && user.isAdmin);
-                console.log('Show admin view:', showAdminView);
-                
-                if (showAdminView) {
-                    document.getElementById('adminNav').classList.remove('hidden');
-                    document.getElementById('regularControls').classList.add('hidden');
-                    document.getElementById('regularStats').classList.add('hidden');
-                    showAdminSection('dashboard');
-                } else {
-                    document.getElementById('adminNav').classList.add('hidden');
-                    document.getElementById('regularControls').classList.remove('hidden');
-                    document.getElementById('regularStats').classList.remove('hidden');
-                    showScheduleView();
-                }
-                
-                show('mainApp');
-                renderCalendar();
-                updateStats();
-                updateAdminStats();
-                showNotification(`Welcome back${showAdminView ? ' (Admin Mode)' : ''}!`);
-            } else {
-                console.log('Login failed - invalid credentials');
-                showNotification('Invalid credentials', 'error');
-            }
-            console.log('=== END LOGIN ===');
-        }
-
-        function register() {
-            const firstName = document.getElementById('regFirstName').value;
-            const lastName = document.getElementById('regLastName').value;
-            const email = document.getElementById('regEmail').value.trim().toLowerCase();
-            const password = document.getElementById('regPassword').value;
-            
-            if (!firstName || !lastName || !email || !password) {
-                showNotification('Please fill all fields', 'error');
-                return;
-            }
-            
-            if (users.find(u => u.email.toLowerCase() === email)) {
-                showNotification('Email already exists', 'error');
-                return;
-            }
-            
-            const newUser = {
-                id: users.length + 1,
-                firstName,
-                lastName,
-                email,
-                password,
-                isAdmin: false,
-                availablePractice: true,
-                availableMatches: true,
-                preferredDays: '',
-                unavailableDates: ''
-            };
-            
-            users.push(newUser);
-            saveUsers();
-            currentUser = newUser;
-            localStorage.setItem('tennisUser', JSON.stringify(newUser));
-            document.getElementById('welcomeUser').textContent = `Welcome, ${newUser.firstName}!`;
-            
-            show('mainApp');
-            showScheduleView();
-            renderCalendar();
-            updateStats();
-            showNotification('Account created!');
-        }
-
-        function logout() {
-            localStorage.removeItem('tennisUser');
-            localStorage.removeItem('loginMode');
-            currentUser = null;
-            show('loginScreen');
-            showNotification('Logged out');
-        }
-
-        // Mode switching functions
-        function switchToPlayerMode() {
-            if (!currentUser || !currentUser.isAdmin) return;
-            
-            localStorage.setItem('loginMode', 'player');
-            document.getElementById('adminNav').classList.add('hidden');
-            document.getElementById('regularControls').classList.remove('hidden');
-            document.getElementById('regularStats').classList.remove('hidden');
-            showScheduleView();
-            updateModeButtons();
-            showNotification('Switched to Player View');
-        }
-
-        function switchToAdminMode() {
-            if (!currentUser || !currentUser.isAdmin) return;
-            
-            localStorage.setItem('loginMode', 'admin');
-            document.getElementById('adminNav').classList.remove('hidden');
-            document.getElementById('regularControls').classList.add('hidden');
-            document.getElementById('regularStats').classList.add('hidden');
-            showAdminSection('dashboard');
-            updateModeButtons();
-            showNotification('Switched to Admin View');
-        }
-
-        function updateModeButtons() {
-            const modeSwitcher = document.getElementById('modeSwitcher');
-            if (!currentUser || !currentUser.isAdmin) {
-                modeSwitcher.classList.add('hidden');
-                return;
-            }
-            
-            modeSwitcher.classList.remove('hidden');
-            const currentMode = localStorage.getItem('loginMode') || 'player';
-            
-            if (currentMode === 'admin') {
-                document.getElementById('adminModeBtn').style.background = '#667eea';
-                document.getElementById('playerModeBtn').style.background = '#6c757d';
-            } else {
-                document.getElementById('playerModeBtn').style.background = '#667eea';
-                document.getElementById('adminModeBtn').style.background = '#6c757d';
-            }
-        }
-
-        // Get user's scheduled matches
-        function getUserScheduledMatches(userId) {
-            const userMatches = [];
-            const now = new Date();
-            
-            events.forEach(event => {
-                if (event.type === 'match' && event.playerAssignments && new Date(event.date) >= now) {
-                    Object.keys(event.playerAssignments).forEach(position => {
-                        if (event.playerAssignments[position] === userId) {
-                            const positionNames = {
-                                '1Singles': '#1 Singles',
-                                '2Singles': '#2 Singles',
-                                '1Doubles': '#1 Doubles',
-                                '2Doubles': '#2 Doubles',
-                                '3Doubles': '#3 Doubles'
-                            };
-                            userMatches.push({
-                                event: event,
-                                position: positionNames[position]
-                            });
-                        }
-                    });
-                }
-            });
-            
-            return userMatches.sort((a, b) => new Date(a.event.date) - new Date(b.event.date));
-        }
-
-        function showLogin() {
-            show('loginScreen');
-        }
-
-        function showRegister() {
-            show('registerScreen');
-        }
-
-        // Admin section management
-        function showAdminSection(section) {
-            currentAdminSection = section;
-            
-            // Update navigation
-            document.querySelectorAll('.admin-nav button').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(section + 'Btn').classList.add('active');
-            
-            // Hide all sections
-            document.getElementById('adminDashboard').classList.add('hidden');
-            document.getElementById('userManagement').classList.add('hidden');
-            document.getElementById('eventManagement').classList.add('hidden');
-            document.getElementById('courtManagement').classList.add('hidden');
-            document.getElementById('opponentManagement').classList.add('hidden');
-            document.getElementById('scheduleView').classList.add('hidden');
-            
-            // Show selected section
-            if (section === 'dashboard') {
-                document.getElementById('adminDashboard').classList.remove('hidden');
-                updateAdminStats();
-            } else if (section === 'users') {
-                document.getElementById('userManagement').classList.remove('hidden');
-                renderUserTable();
-            } else if (section === 'events') {
-                document.getElementById('eventManagement').classList.remove('hidden');
-                renderEventTable();
-            } else if (section === 'courts') {
-                document.getElementById('courtManagement').classList.remove('hidden');
-                renderCourtTable();
-            } else if (section === 'opponents') {
-                document.getElementById('opponentManagement').classList.remove('hidden');
-                renderOpponentTable();
-            } else if (section === 'schedule') {
-                document.getElementById('scheduleView').classList.remove('hidden');
-                renderCalendar();
-            }
-        }
-
-        function showScheduleView() {
-            document.getElementById('adminDashboard').classList.add('hidden');
-            document.getElementById('userManagement').classList.add('hidden');
-            document.getElementById('eventManagement').classList.add('hidden');
-            document.getElementById('courtManagement').classList.add('hidden');
-            document.getElementById('opponentManagement').classList.add('hidden');
-            document.getElementById('scheduleView').classList.remove('hidden');
-        }
-
-        // Admin dashboard functions
-        function updateAdminStats() {
-            const now = new Date();
-            const upcomingEvents = events.filter(e => new Date(e.date) >= now).length;
-            const pendingRSVPs = events.reduce((count, event) => {
-                return count + users.filter(user => !event.rsvps[user.id] || event.rsvps[user.id] === 'pending').length;
-            }, 0);
-            
-            document.getElementById('totalUsers').textContent = users.length;
-            document.getElementById('totalEvents').textContent = events.length;
-            document.getElementById('upcomingEvents').textContent = upcomingEvents;
-            document.getElementById('pendingRSVPs').textContent = pendingRSVPs;
-        }
-
-        // User management functions
-        function renderUserTable() {
-            const tbody = document.getElementById('userTableBody');
-            tbody.innerHTML = '';
-            
-            users.forEach(user => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${user.firstName} ${user.lastName}</td>
-                    <td>${user.email}</td>
-                    <td>${user.isAdmin ? 'Admin' : 'Player'}</td>
-                    <td>${user.availablePractice ? 'Yes' : 'No'}</td>
-                    <td>${user.availableMatches ? 'Yes' : 'No'}</td>
-                    <td>
-                        <button onclick="editUser(${user.id})" class="btn btn-small">Edit</button>
-                        <button onclick="resetPassword(${user.id})" class="btn btn-warning btn-small">Reset Password</button>
-                        ${user.id !== 1 ? `<button onclick="deleteUser(${user.id})" class="btn btn-danger btn-small">Delete</button>` : ''}
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function showCreateUser() {
-            document.getElementById('userEditTitle').textContent = 'Create New User';
-            document.getElementById('editUserId').value = '';
-            document.getElementById('editFirstName').value = '';
-            document.getElementById('editLastName').value = '';
-            document.getElementById('editEmail').value = '';
-            document.getElementById('editPassword').value = '';
-            document.getElementById('editIsAdmin').checked = false;
-            document.getElementById('editAvailPractice').checked = true;
-            document.getElementById('editAvailMatches').checked = true;
-            document.getElementById('editPreferredDays').value = '';
-            document.getElementById('editUnavailableDates').value = '';
-            document.getElementById('userEditModal').classList.add('show');
-        }
-
-        function editUser(userId) {
-            const user = users.find(u => u.id === userId);
-            if (!user) return;
-            
-            document.getElementById('userEditTitle').textContent = 'Edit User';
-            document.getElementById('editUserId').value = user.id;
-            document.getElementById('editFirstName').value = user.firstName;
-            document.getElementById('editLastName').value = user.lastName;
-            document.getElementById('editEmail').value = user.email;
-            document.getElementById('editPassword').value = '';
-            document.getElementById('editIsAdmin').checked = user.isAdmin;
-            document.getElementById('editAvailPractice').checked = user.availablePractice;
-            document.getElementById('editAvailMatches').checked = user.availableMatches;
-            document.getElementById('editPreferredDays').value = user.preferredDays || '';
-            document.getElementById('editUnavailableDates').value = user.unavailableDates || '';
-            document.getElementById('userEditModal').classList.add('show');
-        }
-
-        function saveUser() {
-            const userId = document.getElementById('editUserId').value;
-            const firstName = document.getElementById('editFirstName').value;
-            const lastName = document.getElementById('editLastName').value;
-            const email = document.getElementById('editEmail').value;
-            const password = document.getElementById('editPassword').value;
-            const isAdmin = document.getElementById('editIsAdmin').checked;
-            const availablePractice = document.getElementById('editAvailPractice').checked;
-            const availableMatches = document.getElementById('editAvailMatches').checked;
-            const preferredDays = document.getElementById('editPreferredDays').value;
-            const unavailableDates = document.getElementById('editUnavailableDates').value;
-            
-            if (!firstName || !lastName || !email) {
-                showNotification('Please fill required fields', 'error');
-                return;
-            }
-            
-            if (userId) {
-                // Edit existing user
-                const userIndex = users.findIndex(u => u.id == userId);
-                if (userIndex !== -1) {
-                    users[userIndex].firstName = firstName;
-                    users[userIndex].lastName = lastName;
-                    users[userIndex].email = email;
-                    if (password) {
-                        users[userIndex].password = password;
-                    }
-                    users[userIndex].isAdmin = isAdmin;
-                    users[userIndex].availablePractice = availablePractice;
-                    users[userIndex].availableMatches = availableMatches;
-                    users[userIndex].preferredDays = preferredDays;
-                    users[userIndex].unavailableDates = unavailableDates;
-                    
-                    showNotification('User updated successfully');
-                }
-                saveUsers();
-            } else {
-                // Create new user
-                if (!password) {
-                    showNotification('Password required for new user', 'error');
-                    return;
-                }
-                
-                if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-                    showNotification('Email already exists', 'error');
-                    return;
-                }
-                
-                const newUser = {
-                    id: Math.max(...users.map(u => u.id)) + 1,
-                    firstName,
-                    lastName,
-                    email,
-                    password,
-                    isAdmin,
-                    availablePractice,
-                    availableMatches,
-                    preferredDays,
-                    unavailableDates
-                };
-                
-                users.push(newUser);
-                saveUsers();
-                showNotification('User created successfully');
-            }
-            
-            closeUserEditModal();
-            renderUserTable();
-            updateAdminStats();
-        }
-
-        function resetPassword(userId) {
-            const user = users.find(u => u.id === userId);
-            if (!user) return;
-            
-            const newPassword = prompt(`Enter new password for ${user.firstName} ${user.lastName}:`);
-            if (newPassword && newPassword.trim()) {
-                user.password = newPassword.trim();
-                saveUsers();
-                showNotification(`Password reset for ${user.firstName} ${user.lastName}`);
-            }
-        }
-
-        function deleteUser(userId) {
-            const user = users.find(u => u.id === userId);
-            if (!user) return;
-            
-            if (confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?`)) {
-                users = users.filter(u => u.id !== userId);
-                saveUsers();
-                renderUserTable();
-                updateAdminStats();
-                showNotification('User deleted');
-            }
-        }
-
-        function closeUserEditModal() {
-            document.getElementById('userEditModal').classList.remove('show');
-        }
-
-        // Court management functions
-        function renderCourtTable() {
-            const tbody = document.getElementById('courtTableBody');
-            tbody.innerHTML = '';
-            
-            courts.forEach(court => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${court.name}</td>
-                    <td>${court.location}</td>
-                    <td>${court.type}</td>
-                    <td>
-                        <button onclick="editCourt(${court.id})" class="btn btn-small">Edit</button>
-                        <button onclick="deleteCourt(${court.id})" class="btn btn-danger btn-small">Delete</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function showCreateCourt() {
-            document.getElementById('courtEditTitle').textContent = 'Create New Court';
-            document.getElementById('editCourtId').value = '';
-            document.getElementById('editCourtName').value = '';
-            document.getElementById('editCourtLocation').value = '';
-            document.getElementById('editCourtType').value = 'Outdoor';
-            document.getElementById('editCourtNotes').value = '';
-            document.getElementById('courtEditModal').classList.add('show');
-        }
-
-        function editCourt(courtId) {
-            const court = courts.find(c => c.id === courtId);
-            if (!court) return;
-            
-            document.getElementById('courtEditTitle').textContent = 'Edit Court';
-            document.getElementById('editCourtId').value = court.id;
-            document.getElementById('editCourtName').value = court.name;
-            document.getElementById('editCourtLocation').value = court.location;
-            document.getElementById('editCourtType').value = court.type;
-            document.getElementById('editCourtNotes').value = court.notes || '';
-            document.getElementById('courtEditModal').classList.add('show');
-        }
-
-        function saveCourt() {
-            const courtId = document.getElementById('editCourtId').value;
-            const name = document.getElementById('editCourtName').value;
-            const location = document.getElementById('editCourtLocation').value;
-            const type = document.getElementById('editCourtType').value;
-            const notes = document.getElementById('editCourtNotes').value;
-            
-            if (!name || !location) {
-                showNotification('Please fill required fields', 'error');
-                return;
-            }
-            
-            if (courtId) {
-                // Edit existing court
-                const courtIndex = courts.findIndex(c => c.id == courtId);
-                if (courtIndex !== -1) {
-                    const oldCourt = courts[courtIndex];
-                    courts[courtIndex] = { ...oldCourt, name, location, type, notes };
-                    
-                    // Check if this affects historical events
-                    const affectedEvents = events.filter(e => e.court === getCourtDisplayName(courtId));
-                    if (affectedEvents.length > 0) {
-                        showHistoricalUpdateConfirmation('court', courtId, oldCourt, { name, location, type, notes });
-                        return;
-                    }
-                    
-                    showNotification('Court updated successfully');
-                }
-            } else {
-                // Create new court
-                const newCourt = {
-                    id: Math.max(...courts.map(c => c.id)) + 1,
-                    name,
-                    location,
-                    type,
-                    notes
-                };
-                
-                courts.push(newCourt);
-                showNotification('Court created successfully');
-            }
-            
-            saveCourts();
-            closeCourtEditModal();
-            renderCourtTable();
-            updateCourtDropdowns();
-        }
-
-        function deleteCourt(courtId) {
-            const court = courts.find(c => c.id === courtId);
-            if (!court) return;
-            
-            // Check if court is used in any events
-            const usedInEvents = events.filter(e => e.court === getCourtDisplayName(courtId));
-            if (usedInEvents.length > 0) {
-                showNotification(`Cannot delete court. It's used in ${usedInEvents.length} event(s).`, 'error');
-                return;
-            }
-            
-            if (confirm(`Are you sure you want to delete "${court.location} - ${court.name}"?`)) {
-                courts = courts.filter(c => c.id !== courtId);
-                saveCourts();
-                renderCourtTable();
-                updateCourtDropdowns();
-                showNotification('Court deleted');
-            }
-        }
-
-        function closeCourtEditModal() {
-            document.getElementById('courtEditModal').classList.remove('show');
-        }
-
-        // Opponent management functions
-        function renderOpponentTable() {
-            const tbody = document.getElementById('opponentTableBody');
-            tbody.innerHTML = '';
-            
-            opponents.forEach(opponent => {
-                const record = `${opponent.wins || 0}-${opponent.losses || 0}`;
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${opponent.name}</td>
-                    <td>${opponent.contact || 'N/A'}</td>
-                    <td>${opponent.league || 'N/A'}</td>
-                    <td>${record}</td>
-                    <td>
-                        <button onclick="editOpponent(${opponent.id})" class="btn btn-small">Edit</button>
-                        <button onclick="deleteOpponent(${opponent.id})" class="btn btn-danger btn-small">Delete</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function showCreateOpponent() {
-            document.getElementById('opponentEditTitle').textContent = 'Create New Opponent';
-            document.getElementById('editOpponentId').value = '';
-            document.getElementById('editOpponentName').value = '';
-            document.getElementById('editOpponentContact').value = '';
-            document.getElementById('editOpponentEmail').value = '';
-            document.getElementById('editOpponentPhone').value = '';
-            document.getElementById('editOpponentLeague').value = '';
-            document.getElementById('editOpponentNotes').value = '';
-            document.getElementById('opponentEditModal').classList.add('show');
-        }
-
-        function editOpponent(opponentId) {
-            const opponent = opponents.find(o => o.id === opponentId);
-            if (!opponent) return;
-            
-            document.getElementById('opponentEditTitle').textContent = 'Edit Opponent';
-            document.getElementById('editOpponentId').value = opponent.id;
-            document.getElementById('editOpponentName').value = opponent.name;
-            document.getElementById('editOpponentContact').value = opponent.contact || '';
-            document.getElementById('editOpponentEmail').value = opponent.email || '';
-            document.getElementById('editOpponentPhone').value = opponent.phone || '';
-            document.getElementById('editOpponentLeague').value = opponent.league || '';
-            document.getElementById('editOpponentNotes').value = opponent.notes || '';
-            document.getElementById('opponentEditModal').classList.add('show');
-        }
-
-        function saveOpponent() {
-            const opponentId = document.getElementById('editOpponentId').value;
-            const name = document.getElementById('editOpponentName').value;
-            const contact = document.getElementById('editOpponentContact').value;
-            const email = document.getElementById('editOpponentEmail').value;
-            const phone = document.getElementById('editOpponentPhone').value;
-            const league = document.getElementById('editOpponentLeague').value;
-            const notes = document.getElementById('editOpponentNotes').value;
-            
-            if (!name) {
-                showNotification('Please enter team name', 'error');
-                return;
-            }
-            
-            if (opponentId) {
-                // Edit existing opponent
-                const opponentIndex = opponents.findIndex(o => o.id == opponentId);
-                if (opponentIndex !== -1) {
-                    const oldOpponent = opponents[opponentIndex];
-                    opponents[opponentIndex] = { 
-                        ...oldOpponent, 
-                        name, 
-                        contact, 
-                        email, 
-                        phone, 
-                        league, 
-                        notes 
-                    };
-                    
-                    // Check if this affects historical events
-                    const affectedEvents = events.filter(e => e.opponent === oldOpponent.name);
-                    if (affectedEvents.length > 0) {
-                        showHistoricalUpdateConfirmation('opponent', opponentId, oldOpponent, { name, contact, email, phone, league, notes });
-                        return;
-                    }
-                    
-                    showNotification('Opponent updated successfully');
-                }
-            } else {
-                // Create new opponent
-                const newOpponent = {
-                    id: Math.max(...opponents.map(o => o.id)) + 1,
-                    name,
-                    contact,
-                    email,
-                    phone,
-                    league,
-                    notes,
-                    wins: 0,
-                    losses: 0
-                };
-                
-                opponents.push(newOpponent);
-                showNotification('Opponent created successfully');
-            }
-            
-            saveOpponents();
-            closeOpponentEditModal();
-            renderOpponentTable();
-            updateOpponentDropdowns();
-        }
-
-        function deleteOpponent(opponentId) {
-            const opponent = opponents.find(o => o.id === opponentId);
-            if (!opponent) return;
-            
-            // Check if opponent is used in any events
-            const usedInEvents = events.filter(e => e.opponent === opponent.name);
-            if (usedInEvents.length > 0) {
-                showNotification(`Cannot delete opponent. They're used in ${usedInEvents.length} event(s).`, 'error');
-                return;
-            }
-            
-            if (confirm(`Are you sure you want to delete "${opponent.name}"?`)) {
-                opponents = opponents.filter(o => o.id !== opponentId);
-                saveOpponents();
-                renderOpponentTable();
-                updateOpponentDropdowns();
-                showNotification('Opponent deleted');
-            }
-        }
-
-        function closeOpponentEditModal() {
-            document.getElementById('opponentEditModal').classList.remove('show');
-        }
-
-        // Update dropdown functions
-        function updateCourtDropdowns() {
-            const courtSelect = document.getElementById('courtLocation');
-            courtSelect.innerHTML = '<option value="">Select Court...</option>';
-            
-            courts.forEach(court => {
-                const option = document.createElement('option');
-                option.value = court.id;
-                option.textContent = `${court.location} - ${court.name}`;
-                courtSelect.appendChild(option);
-            });
-        }
-
-        function updateOpponentDropdowns() {
-            const opponentSelect = document.getElementById('opponent');
-            opponentSelect.innerHTML = '<option value="">Select Opponent...</option>';
-            
-            opponents.forEach(opponent => {
-                const option = document.createElement('option');
-                option.value = opponent.id;
-                option.textContent = opponent.name;
-                opponentSelect.appendChild(option);
-            });
-        }
-
-        function updatePlayerDropdowns() {
-            const positions = ['position1Singles', 'position2Singles', 'position1Doubles', 'position2Doubles', 'position3Doubles'];
-            
-            positions.forEach(positionId => {
-                const select = document.getElementById(positionId);
-                if (select) {
-                    select.innerHTML = '<option value="">Select Player...</option>';
-                    
-                    users.filter(u => !u.isAdmin || u.availableMatches).forEach(user => {
-                        const option = document.createElement('option');
-                        option.value = user.id;
-                        option.textContent = `${user.firstName} ${user.lastName}`;
-                        select.appendChild(option);
-                    });
-                }
-            });
-        }
-
-        // Show/hide player assignments based on event type
-        function togglePlayerAssignments() {
-            const eventType = document.getElementById('eventType').value;
-            const assignmentSection = document.getElementById('playerAssignmentSection');
-            
-            if (eventType === 'match') {
-                assignmentSection.style.display = 'block';
-                updatePlayerDropdowns();
-            } else {
-                assignmentSection.style.display = 'none';
-            }
-        }
-
-        // Historical update confirmation system
-        let pendingHistoricalUpdate = null;
-
-        function showHistoricalUpdateConfirmation(type, id, oldData, newData) {
-            pendingHistoricalUpdate = { type, id, oldData, newData };
-            
-            const affectedEvents = type === 'court' 
-                ? events.filter(e => e.court === getCourtDisplayName(id))
-                : events.filter(e => e.opponent === oldData.name);
-            
-            const message = `This change will affect ${affectedEvents.length} past event(s). Do you want to update historical records?`;
-            document.getElementById('historicalMessage').textContent = message;
-            document.getElementById('historicalUpdateModal').classList.add('show');
-        }
-
-        function confirmHistoricalUpdate(updateHistorical) {
-            if (!pendingHistoricalUpdate) return;
-            
-            const { type, id, oldData, newData } = pendingHistoricalUpdate;
-            
-            if (type === 'court') {
-                const courtIndex = courts.findIndex(c => c.id == id);
-                if (courtIndex !== -1) {
-                    courts[courtIndex] = { ...oldData, ...newData };
-                    
-                    if (updateHistorical) {
-                        // Update historical events
-                        const oldDisplayName = getCourtDisplayName(id);
-                        const newDisplayName = `${newData.location} - ${newData.name}`;
-                        events.forEach(event => {
-                            if (event.court === oldDisplayName) {
-                                event.court = newDisplayName;
-                            }
-                        });
-                        saveEvents();
-                        showNotification('Court and historical events updated');
-                    } else {
-                        showNotification('Court updated (historical events unchanged)');
-                    }
-                    
-                    saveCourts();
-                    renderCourtTable();
-                    updateCourtDropdowns();
-                }
-            } else if (type === 'opponent') {
-                const opponentIndex = opponents.findIndex(o => o.id == id);
-                if (opponentIndex !== -1) {
-                    opponents[opponentIndex] = { ...oldData, ...newData };
-                    
-                    if (updateHistorical) {
-                        // Update historical events
-                        events.forEach(event => {
-                            if (event.opponent === oldData.name) {
-                                event.opponent = newData.name;
-                            }
-                        });
-                        saveEvents();
-                        showNotification('Opponent and historical events updated');
-                    } else {
-                        showNotification('Opponent updated (historical events unchanged)');
-                    }
-                    
-                    saveOpponents();
-                    renderOpponentTable();
-                    updateOpponentDropdowns();
-                }
-            }
-            
-            closeHistoricalModal();
-        }
-
-        function closeHistoricalModal() {
-            document.getElementById('historicalUpdateModal').classList.remove('show');
-            pendingHistoricalUpdate = null;
-        }
-
-        // Event management functions
-        function renderEventTable() {
-            const tbody = document.getElementById('eventTableBody');
-            tbody.innerHTML = '';
-            
-            events.forEach(event => {
-                const rsvpCounts = users.reduce((counts, user) => {
-                    const rsvp = event.rsvps[user.id] || 'pending';
-                    counts[rsvp] = (counts[rsvp] || 0) + 1;
-                    return counts;
-                }, {});
-                
-                const rsvpSummary = `${rsvpCounts.yes || 0}Y/${rsvpCounts.no || 0}N/${rsvpCounts.maybe || 0}M/${rsvpCounts.pending || 0}P`;
-                const homeAwayDisplay = event.homeAway ? `<span style="background: ${event.homeAway === 'Home' ? '#28a745' : '#007bff'}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${event.homeAway === 'Home' ? '🏠' : '✈️'}</span>` : '';
-                
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${event.title} ${homeAwayDisplay}</td>
-                    <td>${event.type}</td>
-                    <td>${new Date(event.date).toLocaleDateString()}</td>
-                    <td>${event.time}</td>
-                    <td>${event.court || 'TBD'}</td>
-                    <td>${rsvpSummary}</td>
-                    <td>
-                        <button onclick="editEvent(${event.id})" class="btn btn-small">Edit</button>
-                        <button onclick="viewEventRSVPs(${event.id})" class="btn btn-secondary btn-small">RSVPs</button>
-                        <button onclick="deleteEventAdmin(${event.id})" class="btn btn-danger btn-small">Delete</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function showCreateEventAdmin() {
-            document.getElementById('createEventTitle').textContent = 'Create New Event';
-            document.getElementById('editEventId').value = '';
-            document.getElementById('eventType').value = 'match';
-            document.getElementById('eventDate').value = '';
-            document.getElementById('eventTime').value = '18:00';
-            document.getElementById('courtLocation').value = '';
-            document.getElementById('opponent').value = '';
-            document.getElementById('homeAway').value = '';
-            document.getElementById('eventDescription').value = '';
-            
-            // Clear player assignments
-            ['position1Singles', 'position2Singles', 'position1Doubles', 'position2Doubles', 'position3Doubles'].forEach(id => {
-                const select = document.getElementById(id);
-                if (select) select.value = '';
-            });
-            
-            document.getElementById('saveEventBtn').textContent = 'Create Event';
-            togglePlayerAssignments(); // Show assignments for match type
-            document.getElementById('createEventModal').classList.add('show');
-        }
-
-        function editEvent(eventId) {
-            const event = events.find(e => e.id === eventId);
-            if (!event) return;
-            
-            document.getElementById('createEventTitle').textContent = 'Edit Event';
-            document.getElementById('editEventId').value = event.id;
-            document.getElementById('eventType').value = event.type;
-            document.getElementById('eventDate').value = event.date;
-            document.getElementById('eventTime').value = event.time;
-            
-            // Find court ID by matching display name
-            const court = courts.find(c => `${c.location} - ${c.name}` === event.court);
-            document.getElementById('courtLocation').value = court ? court.id : '';
-            
-            // Find opponent ID by matching name
-            const opponent = opponents.find(o => o.name === event.opponent);
-            document.getElementById('opponent').value = opponent ? opponent.id : '';
-            
-            document.getElementById('homeAway').value = event.homeAway || '';
-            document.getElementById('eventDescription').value = event.description || '';
-            
-            // Show/hide player assignments based on event type
-            togglePlayerAssignments();
-            
-            // Populate player assignments if they exist
-            if (event.playerAssignments) {
-                Object.keys(event.playerAssignments).forEach(position => {
-                    const selectId = 'position' + position;
-                    const select = document.getElementById(selectId);
-                    if (select) {
-                        select.value = event.playerAssignments[position];
-                    }
-                });
-            }
-            
-            document.getElementById('saveEventBtn').textContent = 'Update Event';
-            document.getElementById('createEventModal').classList.add('show');
-        }
-
-        function saveEvent() {
-            const eventId = document.getElementById('editEventId').value;
-            const type = document.getElementById('eventType').value;
-            const date = document.getElementById('eventDate').value;
-            const time = document.getElementById('eventTime').value;
-            const courtId = document.getElementById('courtLocation').value;
-            const opponentId = document.getElementById('opponent').value;
-            const homeAway = document.getElementById('homeAway').value;
-            const description = document.getElementById('eventDescription').value;
-            
-            if (!date) {
-                showNotification('Please select a date', 'error');
-                return;
-            }
-            
-            // Get player assignments for matches
-            let playerAssignments = {};
-            if (type === 'match') {
-                const positions = {
-                    '1Singles': document.getElementById('position1Singles').value,
-                    '2Singles': document.getElementById('position2Singles').value,
-                    '1Doubles': document.getElementById('position1Doubles').value,
-                    '2Doubles': document.getElementById('position2Doubles').value,
-                    '3Doubles': document.getElementById('position3Doubles').value
-                };
-                
-                // Only include assigned positions
-                Object.keys(positions).forEach(pos => {
-                    if (positions[pos]) {
-                        playerAssignments[pos] = parseInt(positions[pos]);
-                    }
-                });
-            }
-            
-            // Get court and opponent display names
-            const court = courtId ? getCourtDisplayName(courtId) : '';
-            const opponent = opponentId ? getOpponentDisplayName(opponentId) : '';
-            
-            let title = '';
-            if (type === 'match' && opponent) {
-                title = `vs ${opponent}`;
-                if (homeAway) {
-                    title = `${homeAway === 'Home' ? '🏠' : '✈️'} ${title}`;
-                }
-            } else if (type === 'practice') {
-                title = 'Team Practice';
-            } else {
-                title = description || 'Team Event';
-            }
-            
-            if (eventId) {
-                // Edit existing event
-                const eventIndex = events.findIndex(e => e.id == eventId);
-                if (eventIndex !== -1) {
-                    events[eventIndex].type = type;
-                    events[eventIndex].title = title;
-                    events[eventIndex].date = date;
-                    events[eventIndex].time = time;
-                    events[eventIndex].court = court;
-                    events[eventIndex].opponent = opponent;
-                    events[eventIndex].homeAway = homeAway;
-                    events[eventIndex].description = description;
-                    events[eventIndex].playerAssignments = playerAssignments;
-                    
-                    showNotification('Event updated successfully');
-                }
-                saveEvents();
-            } else {
-                // Create new event
-                const newEvent = {
-                    id: Math.max(...events.map(e => e.id), 0) + 1,
-                    type,
-                    title,
-                    date,
-                    time,
-                    court,
-                    opponent,
-                    homeAway,
-                    description,
-                    playerAssignments,
-                    rsvps: {}
-                };
-                
-                events.push(newEvent);
-                saveEvents();
-                showNotification('Event created successfully');
-            }
-            
-            closeCreateModal();
-            renderEventTable();
-            renderCalendar();
-            updateStats();
-            updateAdminStats();
-        }
-
-        function viewEventRSVPs(eventId) {
-            const event = events.find(e => e.id === eventId);
-            if (!event) return;
-            
-            showEventDetails(event);
-        }
-
-        function deleteEventAdmin(eventId) {
-            const event = events.find(e => e.id === eventId);
-            if (!event) return;
-            
-            if (confirm(`Are you sure you want to delete "${event.title}"?`)) {
-                events = events.filter(e => e.id !== eventId);
-                saveEvents();
-                renderEventTable();
-                renderCalendar();
-                updateStats();
-                updateAdminStats();
-                showNotification('Event deleted');
-            }
-        }
-
-        // View switching
-        function switchView(view) {
-            currentView = view;
-            
-            if (view === 'calendar') {
-                document.getElementById('calendarView').classList.remove('hidden');
-                document.getElementById('listView').classList.add('hidden');
-                document.getElementById('calendarBtn').className = 'btn';
-                document.getElementById('listBtn').className = 'btn btn-secondary';
-            } else {
-                document.getElementById('calendarView').classList.add('hidden');
-                document.getElementById('listView').classList.remove('hidden');
-                document.getElementById('calendarBtn').className = 'btn btn-secondary';
-                document.getElementById('listBtn').className = 'btn';
-                renderEventsList();
-            }
-        }
-
-        // Calendar rendering
-        function renderCalendar() {
-            const calendar = document.getElementById('calendar');
-            const monthHeader = document.getElementById('monthHeader');
-            
-            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                               'July', 'August', 'September', 'October', 'November', 'December'];
-            monthHeader.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
-            
-            calendar.innerHTML = '';
-            
-            // Add day headers
-            ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
-                const header = document.createElement('div');
-                header.style.cssText = 'background: #667eea; color: white; padding: 10px; text-align: center; font-weight: bold;';
-                header.textContent = day;
-                calendar.appendChild(header);
-            });
-            
-            // Get first day of month
-            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-            const startDate = new Date(firstDay);
-            startDate.setDate(startDate.getDate() - firstDay.getDay());
-            
-            // Generate calendar days
-            for (let i = 0; i < 42; i++) {
-                const cellDate = new Date(startDate);
-                cellDate.setDate(startDate.getDate() + i);
-                
-                const dayCell = document.createElement('div');
-                dayCell.className = 'calendar-day';
-                dayCell.textContent = cellDate.getDate();
-                
-                if (cellDate.getMonth() !== currentDate.getMonth()) {
-                    dayCell.style.color = '#ccc';
-                }
-                
-                if (isToday(cellDate)) {
-                    dayCell.classList.add('today');
-                }
-                
-                // Check for events
-                const dayEvents = getEventsForDate(cellDate);
-                if (dayEvents.length > 0) {
-                    const dot = document.createElement('div');
-                    dot.className = 'event-dot';
-                    dayCell.appendChild(dot);
-                }
-                
-                dayCell.onclick = () => showDayEvents(cellDate);
-                calendar.appendChild(dayCell);
-            }
-        }
-
-        function isToday(date) {
-            const today = new Date();
-            return date.toDateString() === today.toDateString();
-        }
-
-        function getEventsForDate(date) {
-            const dateStr = date.toISOString().split('T')[0];
-            return events.filter(event => event.date === dateStr);
-        }
-
-        function showDayEvents(date) {
-            const dayEvents = getEventsForDate(date);
-            if (dayEvents.length === 0) {
-                if (currentUser && currentUser.isAdmin) {
-                    if (confirm('No events on this day. Create one?')) {
-                        document.getElementById('eventDate').value = date.toISOString().split('T')[0];
-                        showCreateEventAdmin();
-                    }
-                } else {
-                    showNotification('No events on this day');
-                }
-                return;
-            }
-            showEventDetails(dayEvents[0]);
-        }
-
-        function previousMonth() {
-            currentDate.setMonth(currentDate.getMonth() - 1);
-            renderCalendar();
-        }
-
-        function nextMonth() {
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            renderCalendar();
-        }
-
-        // Event management
-        function showEventDetails(event) {
-            document.getElementById('eventTitle').textContent = event.title;
-            
-            const userRSVP = event.rsvps[currentUser.id] || 'pending';
-            
-            let rsvpSection = '';
-            if (currentUser.isAdmin) {
-                // Admin view - show all RSVPs
-                rsvpSection = `
-                    <div style="margin: 20px 0;">
-                        <h4>Team RSVPs:</h4>
-                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-                            <tr style="background: #f8f9fa;">
-                                <th style="padding: 8px; border: 1px solid #ddd;">Player</th>
-                                <th style="padding: 8px; border: 1px solid #ddd;">Response</th>
-                            </tr>
-                `;
-                
-                users.forEach(user => {
-                    const rsvp = event.rsvps[user.id] || 'pending';
-                    rsvpSection += `
-                        <tr>
-                            <td style="padding: 8px; border: 1px solid #ddd;">${user.firstName} ${user.lastName}</td>
-                            <td style="padding: 8px; border: 1px solid #ddd;">${rsvp}</td>
-                        </tr>
-                    `;
-                });
-                
-                rsvpSection += '</table></div>';
-            } else {
-                // Regular user view - show own RSVP
-                rsvpSection = `
-                    <div style="margin: 20px 0;">
-                        <h4>Your RSVP:</h4>
-                        <label><input type="radio" name="rsvp" value="yes" ${userRSVP === 'yes' ? 'checked' : ''} onchange="updateRSVP(${event.id}, 'yes')"> Yes</label>
-                        <label><input type="radio" name="rsvp" value="no" ${userRSVP === 'no' ? 'checked' : ''} onchange="updateRSVP(${event.id}, 'no')"> No</label>
-                        <label><input type="radio" name="rsvp" value="maybe" ${userRSVP === 'maybe' ? 'checked' : ''} onchange="updateRSVP(${event.id}, 'maybe')"> Maybe</label>
-                    </div>
-                `;
-            }
-            
-            const homeAwayBanner = event.homeAway ? `
-                <div style="background: ${event.homeAway === 'Home' ? '#28a745' : '#007bff'}; color: white; padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 15px; font-weight: bold; font-size: 16px;">
-                    ${event.homeAway === 'Home' ? '🏠 HOME GAME' : '✈️ AWAY GAME'}
-                </div>
-            ` : '';
-            
-            // Generate player assignments display
-            let playerAssignmentsDisplay = '';
-            if (event.type === 'match' && event.playerAssignments && Object.keys(event.playerAssignments).length > 0) {
-                const positionNames = {
-                    '1Singles': '#1 Singles',
-                    '2Singles': '#2 Singles',
-                    '1Doubles': '#1 Doubles',
-                    '2Doubles': '#2 Doubles',
-                    '3Doubles': '#3 Doubles'
-                };
-                
-                playerAssignmentsDisplay = '<div style="margin: 15px 0;"><h4>Player Lineup:</h4>';
-                Object.keys(event.playerAssignments).forEach(position => {
-                    const userId = event.playerAssignments[position];
-                    const user = users.find(u => u.id === userId);
-                    if (user) {
-                        playerAssignmentsDisplay += `<p><strong>${positionNames[position]}:</strong> ${user.firstName} ${user.lastName}</p>`;
-                    }
-                });
-                playerAssignmentsDisplay += '</div>';
-            }
-            
-            document.getElementById('eventContent').innerHTML = `
-                ${homeAwayBanner}
-                <p><strong>Type:</strong> ${event.type}</p>
-                <p><strong>Date:</strong> ${new Date(event.date).toLocaleDateString()}</p>
-                <p><strong>Time:</strong> ${event.time}</p>
-                <p><strong>Location:</strong> ${event.court || 'TBD'}</p>
-                ${event.opponent ? `<p><strong>Opponent:</strong> ${event.opponent}</p>` : ''}
-                ${event.homeAway ? `<p><strong>Game Type:</strong> ${event.homeAway === 'Home' ? '🏠 Home' : '✈️ Away'}</p>` : ''}
-                <p><strong>Description:</strong> ${event.description || 'None'}</p>
-                
-                ${playerAssignmentsDisplay}
-                
-                ${rsvpSection}
-                
-                ${currentUser.isAdmin ? `
-                    <div style="margin-top: 20px;">
-                        <button onclick="editEvent(${event.id}); closeModal();" class="btn">Edit Event</button>
-                        <button onclick="deleteEventAdmin(${event.id}); closeModal();" class="btn btn-danger btn-small">Delete Event</button>
-                    </div>
-                ` : ''}
-            `;
-            
-            document.getElementById('eventModal').classList.add('show');
-        }
-
-        function updateRSVP(eventId, status) {
-            const event = events.find(e => e.id === eventId);
-            if (event) {
-                event.rsvps[currentUser.id] = status;
-                saveEvents();
-                showNotification(`RSVP updated: ${status}`);
-                updateStats();
-                updateAdminStats();
-                if (currentAdminSection === 'events') {
-                    renderEventTable();
-                }
-            }
-        }
-
-        function deleteEvent(eventId) {
-            if (confirm('Delete this event?')) {
-                events = events.filter(e => e.id !== eventId);
-                saveEvents();
-                closeModal();
-                renderCalendar();
-                updateStats();
-                updateAdminStats();
-                showNotification('Event deleted');
-            }
-        }
-
-        function showCreateEvent() {
-            showCreateEventAdmin();
-        }
-
-        function createEvent() {
-            saveEvent();
-        }
-
-        function renderEventsList() {
-            const container = document.getElementById('eventsList');
-            const sortedEvents = events.sort((a, b) => new Date(a.date) - new Date(b.date));
-            
-            if (sortedEvents.length === 0) {
-                container.innerHTML = '<p>No events scheduled</p>';
-                return;
-            }
-            
-            container.innerHTML = sortedEvents.map(event => {
-                const userRSVP = event.rsvps[currentUser.id] || 'pending';
-                const homeAwayBadge = event.homeAway ? `<span style="background: ${event.homeAway === 'Home' ? '#28a745' : '#007bff'}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 8px;">${event.homeAway === 'Home' ? '🏠 HOME' : '✈️ AWAY'}</span>` : '';
-                return `
-                    <div class="event-item" onclick="showEventDetails(${JSON.stringify(event).replace(/"/g, '&quot;')})">
-                        <div style="font-weight: bold;">${event.title}${homeAwayBadge}</div>
-                        <div>${new Date(event.date).toLocaleDateString()} at ${event.time}</div>
-                        <div>RSVP: ${userRSVP}</div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // Profile management
-        function showProfile() {
-            document.getElementById('profileFirstName').value = currentUser.firstName;
-            document.getElementById('profileLastName').value = currentUser.lastName;
-            document.getElementById('profileEmail').value = currentUser.email;
-            document.getElementById('preferredDays').value = currentUser.preferredDays || '';
-            document.getElementById('unavailableDates').value = currentUser.unavailableDates || '';
-            
-            // Show scheduled matches
-            const scheduledMatches = getUserScheduledMatches(currentUser.id);
-            const matchesContainer = document.getElementById('scheduledMatches');
-            if (matchesContainer) {
-                if (scheduledMatches.length > 0) {
-                    matchesContainer.innerHTML = '<h4>Your Scheduled Matches:</h4>' + 
-                        scheduledMatches.map(match => 
-                            `<p><strong>${match.position}</strong> - ${match.event.title} on ${new Date(match.event.date).toLocaleDateString()}</p>`
-                        ).join('');
-                } else {
-                    matchesContainer.innerHTML = '<h4>Your Scheduled Matches:</h4><p>No upcoming matches assigned</p>';
-                }
-            }
-            
-            document.getElementById('profileModal').classList.add('show');
-        }
-
-        function updateProfile() {
-            currentUser.firstName = document.getElementById('profileFirstName').value;
-            currentUser.lastName = document.getElementById('profileLastName').value;
-            currentUser.email = document.getElementById('profileEmail').value;
-            currentUser.preferredDays = document.getElementById('preferredDays').value;
-            currentUser.unavailableDates = document.getElementById('unavailableDates').value;
-            
-            // Update in users array
-            const userIndex = users.findIndex(u => u.id === currentUser.id);
-            if (userIndex !== -1) {
-                users[userIndex] = currentUser;
-                saveUsers();
-            }
-            
-            localStorage.setItem('tennisUser', JSON.stringify(currentUser));
-            document.getElementById('welcomeUser').textContent = `Welcome, ${currentUser.firstName}!`;
-            closeProfileModal();
-            showNotification('Profile updated!');
-            
-            if (currentAdminSection === 'users') {
-                renderUserTable();
-            }
-        }
-
-        // Modal management
-        function closeModal() {
-            document.getElementById('eventModal').classList.remove('show');
-        }
-
-        function closeCreateModal() {
-            document.getElementById('createEventModal').classList.remove('show');
-        }
-
-        function closeProfileModal() {
-            document.getElementById('profileModal').classList.remove('show');
-        }
-
-        // Stats
-        function updateStats() {
-            const now = new Date();
-            const upcomingMatches = events.filter(e => e.type === 'match' && new Date(e.date) >= now).length;
-            const myRSVPs = events.filter(e => e.rsvps[currentUser.id] === 'yes').length;
-            
-            document.getElementById('upcomingMatches').textContent = upcomingMatches;
-            document.getElementById('myRSVPs').textContent = myRSVPs;
-            document.getElementById('teamMemberCount').textContent = users.length;
-        }
-
-        // Data migration function to preserve existing accounts
-        function migrateExistingData() {
-            // Check if there are any existing accounts in old format
-            const oldUsers = localStorage.getItem('users');
-            const oldEvents = localStorage.getItem('events');
-            
-            if (oldUsers && !localStorage.getItem('tennisUsers')) {
-                try {
-                    const parsedUsers = JSON.parse(oldUsers);
-                    if (Array.isArray(parsedUsers) && parsedUsers.length > 0) {
-                        localStorage.setItem('tennisUsers', oldUsers);
-                    }
-                } catch (e) {
-                    console.log('Error migrating user data:', e);
-                }
-            }
-            
-            if (oldEvents && !localStorage.getItem('tennisEvents')) {
-                try {
-                    const parsedEvents = JSON.parse(oldEvents);
-                    if (Array.isArray(parsedEvents)) {
-                        localStorage.setItem('tennisEvents', oldEvents);
-                    }
-                } catch (e) {
-                    console.log('Error migrating event data:', e);
-                }
-            }
-        }
-
-        // Enhanced app initialization with mobile debugging
-        function init() {
-            console.log('=== APP INITIALIZATION ===');
-            console.log('Starting app initialization...');
-            
-            // Run mobile storage debugging first
-            debugMobileStorage();
-            
-            // First, try to migrate any existing data
-            migrateExistingData();
-            
-            // Reload users and events after potential migration
-            console.log('Loading app data...');
-            users = loadUsers();
-            events = loadEvents();
-            courts = loadCourts();
-            opponents = loadOpponents();
-            
-            console.log('Loaded data summary:');
-            console.log('- Users:', users.length);
-            console.log('- Events:', events.length);
-            console.log('- Courts:', courts.length);
-            console.log('- Opponents:', opponents.length);
-            
-            // Update dropdowns with current data
-            updateCourtDropdowns();
-            updateOpponentDropdowns();
-            
-            // Check for saved user session
-            console.log('Checking for saved user session...');
-            let savedUser = null;
-            
-            try {
-                if (isLocalStorageAvailable()) {
-                    savedUser = localStorage.getItem('tennisUser');
-                    console.log('Saved user data found:', !!savedUser);
-                } else {
-                    console.log('localStorage not available - no saved session');
-                }
-            } catch (e) {
-                console.log('Error accessing saved user:', e);
-            }
-            
-            if (savedUser) {
-                try {
-                    currentUser = JSON.parse(savedUser);
-                    console.log('Restored user session for:', currentUser.firstName);
-                    
-                    // Verify user still exists in current users array
-                    const userExists = users.find(u => u.id === currentUser.id);
-                    if (!userExists) {
-                        console.log('Saved user no longer exists in users array');
-                        localStorage.removeItem('tennisUser');
-                        localStorage.removeItem('loginMode');
-                        show('loginScreen');
-                        showNotification('Your account was not found. Please log in again.', 'error');
-                        return;
-                    }
-                    
-                    document.getElementById('welcomeUser').textContent = `Welcome, ${currentUser.firstName}!`;
-                    
-                    // Check saved login mode preference
-                    const savedMode = localStorage.getItem('loginMode') || 'player';
-                    const showAdminView = (savedMode === 'admin' && currentUser.isAdmin);
-                    console.log('Restored mode:', savedMode, 'Show admin view:', showAdminView);
-                    
-                    if (showAdminView) {
-                        document.getElementById('adminNav').classList.remove('hidden');
-                        document.getElementById('regularControls').classList.add('hidden');
-                        document.getElementById('regularStats').classList.add('hidden');
-                        showAdminSection('dashboard');
-                    } else {
-                        document.getElementById('adminNav').classList.add('hidden');
-                        document.getElementById('regularControls').classList.remove('hidden');
-                        document.getElementById('regularStats').classList.remove('hidden');
-                        showScheduleView();
-                    }
-                    
-                    // Update mode buttons for admin users
-                    updateModeButtons();
-                    
-                    show('mainApp');
-                    renderCalendar();
-                    updateStats();
-                    updateAdminStats();
-                    
-                    console.log('User session restored successfully');
-                } catch (e) {
-                    console.log('Error restoring user session:', e);
-                    show('loginScreen');
-                    showNotification('Session restore failed. Please log in again.', 'error');
-                }
-            } else {
-                console.log('No saved user session - showing login screen');
-                show('loginScreen');
-            }
-            
-            console.log('=== APP INITIALIZATION COMPLETE ===');
-        }
-
-        // Start the app
-        // Initialize when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
-
-        // Close modals when clicking outside
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                e.target.classList.remove('show');
-            }
+  <div class="container">
+    <!-- Login/Register -->
+    <div id="loginScreen">
+      <h2>🎾 My Tennis Scheduler</h2>
+      <input class="form-control" id="email" placeholder="Email" type="email"/>
+      <input class="form-control" id="password" placeholder="Password" type="password"/>
+      <button class="btn" onclick="login()">Sign In</button>
+      <button class="btn btn-secondary" onclick="showRegister()">Create Account</button>
+    </div>
+    <div id="registerScreen" class="hidden">
+      <h2>Join the Team</h2>
+      <input class="form-control" id="regFirstName" placeholder="First Name" type="text"/>
+      <input class="form-control" id="regLastName" placeholder="Last Name" type="text"/>
+      <input class="form-control" id="regEmail" placeholder="Email" type="email"/>
+      <input class="form-control" id="regPassword" placeholder="Password" type="password"/>
+      <button class="btn" onclick="register()">Create Account</button>
+      <button class="btn btn-secondary" onclick="showLogin()">Back to Login</button>
+    </div>
+    <!-- Main App -->
+    <div id="mainApp" class="hidden">
+      <h2>🎾 My Tennis Scheduler</h2>
+      <button class="btn btn-secondary" onclick="logout()">Logout</button>
+      <hr/>
+      <!-- Events Section -->
+      <h3>Events</h3>
+      <button class="btn" onclick="showEventModal()">Add Event</button>
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th><th>Date</th><th>Time</th><th>Court</th><th>Opponent</th><th>Description</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="eventTableBody"></tbody>
+      </table>
+      <!-- Courts Section -->
+      <h3>Courts</h3>
+      <button class="btn" onclick="showCourtModal()">Add Court</button>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th><th>Location</th><th>Type</th><th>Notes</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="courtTableBody"></tbody>
+      </table>
+      <!-- Opponents Section -->
+      <h3>Opponents</h3>
+      <button class="btn" onclick="showOpponentModal()">Add Opponent</button>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th><th>Contact</th><th>Email</th><th>Phone</th><th>League</th><th>Notes</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="opponentTableBody"></tbody>
+      </table>
+    </div>
+    <!-- Event Modal -->
+    <div class="modal" id="eventModal">
+      <div class="modal-content">
+        <h3 id="eventModalTitle">Add Event</h3>
+        <input class="form-control" id="eventTitle" placeholder="Title" type="text"/>
+        <input class="form-control" id="eventDate" placeholder="Date" type="date"/>
+        <input class="form-control" id="eventTime" placeholder="Time" type="time"/>
+        <input class="form-control" id="eventCourt" placeholder="Court" type="text"/>
+        <input class="form-control" id="eventOpponent" placeholder="Opponent" type="text"/>
+        <textarea class="form-control" id="eventDescription" placeholder="Description"></textarea>
+        <button class="btn" id="saveEventBtn" onclick="saveEvent()">Save</button>
+        <button class="btn btn-secondary" onclick="closeEventModal()">Cancel</button>
+        <input type="hidden" id="eventId"/>
+      </div>
+    </div>
+    <!-- Court Modal -->
+    <div class="modal" id="courtModal">
+      <div class="modal-content">
+        <h3 id="courtModalTitle">Add Court</h3>
+        <input class="form-control" id="courtName" placeholder="Court Name" type="text"/>
+        <input class="form-control" id="courtLocation" placeholder="Location" type="text"/>
+        <select class="form-control" id="courtType">
+          <option value="Indoor">Indoor</option>
+          <option value="Outdoor">Outdoor</option>
+          <option value="Clay">Clay</option>
+          <option value="Hard">Hard Court</option>
+          <option value="Grass">Grass</option>
+        </select>
+        <textarea class="form-control" id="courtNotes" placeholder="Notes"></textarea>
+        <button class="btn" onclick="saveCourt()">Save</button>
+        <button class="btn btn-secondary" onclick="closeCourtModal()">Cancel</button>
+        <input type="hidden" id="courtId"/>
+      </div>
+    </div>
+    <!-- Opponent Modal -->
+    <div class="modal" id="opponentModal">
+      <div class="modal-content">
+        <h3 id="opponentModalTitle">Add Opponent</h3>
+        <input class="form-control" id="opponentName" placeholder="Name" type="text"/>
+        <input class="form-control" id="opponentContact" placeholder="Contact" type="text"/>
+        <input class="form-control" id="opponentEmail" placeholder="Email" type="email"/>
+        <input class="form-control" id="opponentPhone" placeholder="Phone" type="text"/>
+        <input class="form-control" id="opponentLeague" placeholder="League" type="text"/>
+        <textarea class="form-control" id="opponentNotes" placeholder="Notes"></textarea>
+        <button class="btn" id="saveOpponentBtn" onclick="saveOpponent()">Save</button>
+        <button class="btn btn-secondary" onclick="closeOpponentModal()">Cancel</button>
+        <input type="hidden" id="opponentId"/>
+      </div>
+    </div>
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+  </div>
+  <script>
+    // Global state
+    let currentUser = null;
+    let events = [];
+    let courts = [];
+    let opponents = [];
+
+    // UI helpers
+    function show(id) {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('registerScreen').classList.add('hidden');
+      document.getElementById('mainApp').classList.add('hidden');
+      if (id) document.getElementById(id).classList.remove('hidden');
+    }
+    function showNotification(message, type = 'success') {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.className = `notification ${type} show`;
+      setTimeout(() => { notification.classList.remove('show'); }, 3000);
+    }
+    function showRegister() { show('registerScreen'); }
+    function showLogin() { show('loginScreen'); }
+
+    // Auth
+    function register() {
+      const firstName = document.getElementById('regFirstName').value;
+      const lastName = document.getElementById('regLastName').value;
+      const email = document.getElementById('regEmail').value.trim().toLowerCase();
+      const password = document.getElementById('regPassword').value;
+      if (!firstName || !lastName || !email || !password) {
+        showNotification('Please fill all fields', 'error');
+        return;
+      }
+      auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          return db.collection('users').doc(userCredential.user.uid).set({
+            firstName, lastName, email
+          });
+        })
+        .then(() => {
+          showNotification('Account created!');
+          show('mainApp');
+          fetchAppData();
+        })
+        .catch((error) => {
+          showNotification(error.message, 'error');
         });
-
-        // Add event listener for event type changes
-        document.addEventListener('DOMContentLoaded', function() {
-            const eventTypeSelect = document.getElementById('eventType');
-            if (eventTypeSelect) {
-                eventTypeSelect.addEventListener('change', togglePlayerAssignments);
-            }
+    }
+    function login() {
+      const email = document.getElementById('email').value.trim().toLowerCase();
+      const password = document.getElementById('password').value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          currentUser = userCredential.user;
+          show('mainApp');
+          fetchAppData();
+        })
+        .catch((error) => {
+          showNotification(error.message, 'error');
         });
-    </script>
-</body>
-</html>
+    }
+    function logout() {
+      auth.signOut().then(() => {
+        currentUser = null;
+        show('loginScreen');
+        showNotification('Logged out');
+      });
+    }
+
+    // App Data Fetch
+    function fetchAppData() {
+      fetchEvents();
+      fetchCourts();
+      fetchOpponents();
+    }
+
+    // EVENTS CRUD
+    function fetchEvents() {
+      db.collection('events').orderBy('date').get().then(snapshot => {
+        events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderEventTable();
+      });
+    }
+    function showEventModal(event = null) {
+      document.getElementById('eventModal').classList.add('show');
+      if (event) {
+        document.getElementById('eventModalTitle').textContent = 'Edit Event';
+        document.getElementById('eventTitle').value = event.title || '';
+        document.getElementById('eventDate').value = event.date || '';
+        document.getElementById('eventTime').value = event.time || '';
+        document.getElementById('eventCourt').value = event.court || '';
+        document.getElementById('eventOpponent').value = event.opponent || '';
+        document.getElementById('eventDescription').value = event.description || '';
+        document.getElementById('eventId').value = event.id || '';
+      } else {
+        document.getElementById('eventModalTitle').textContent = 'Add Event';
+        document.getElementById('eventTitle').value = '';
+        document.getElementById('eventDate').value = '';
+        document.getElementById('eventTime').value = '';
+        document.getElementById('eventCourt').value = '';
+        document.getElementById('eventOpponent').value = '';
+        document.getElementById('eventDescription').value = '';
+        document.getElementById('eventId').value = '';
+      }
+    }
+    function closeEventModal() {
+      document.getElementById('eventModal').classList.remove('show');
+    }
+    function saveEvent() {
+      const title = document.getElementById('eventTitle').value;
+      const date = document.getElementById('eventDate').value;
+      const time = document.getElementById('eventTime').value;
+      const court = document.getElementById('eventCourt').value;
+      const opponent = document.getElementById('eventOpponent').value;
+      const description = document.getElementById('eventDescription').value;
+      const id = document.getElementById('eventId').value;
+      const eventData = { title, date, time, court, opponent, description };
+      if (id) {
+        db.collection('events').doc(id).update(eventData)
+          .then(() => {
+            showNotification('Event updated!');
+            fetchEvents();
+            closeEventModal();
+          })
+          .catch((error) => {
+            showNotification(error.message, 'error');
+          });
+      } else {
+        db.collection('events').add(eventData)
+          .then(() => {
+            showNotification('Event created!');
+            fetchEvents();
+            closeEventModal();
+          })
+          .catch((error) => {
+            showNotification(error.message, 'error');
+          });
+      }
+    }
+    function editEvent(id) {
+      const event = events.find(e => e.id === id);
+      if (event) showEventModal(event);
+    }
+    function removeEvent(id) {
+      if (confirm('Delete this event?')) {
+        db.collection('events').doc(id).delete()
+          .then(() => {
+            showNotification('Event deleted!');
+            fetchEvents();
+          })
+          .catch((error) => {
+            showNotification(error.message, 'error');
+          });
+      }
+    }
+    function renderEventTable() {
+      const tbody = document.getElementById('eventTableBody');
+      tbody.innerHTML = '';
+      events.forEach(event => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${event.title || ''}</td>
+          <td>${event.date || ''}</td>
+          <td>${event.time || ''}</td>
+          <td>${event.court || ''}</td>
+          <td>${event.opponent || ''}</td>
+          <td>${event.description || ''}</td>
+          <td>
+            <button class="btn btn-secondary" onclick="editEvent('${event.id}')">Edit</button>
+            <button class="btn btn-danger" onclick="removeEvent('${event.id}')">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // COURTS CRUD
+    function fetchCourts() {
+      db.collection('courts').orderBy('name').get().then(snapshot => {
+        courts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderCourtTable();
+      });
+    }
+    function showCourtModal(court = null) {
+      document.getElementById('courtModal').classList.add('show');
+      if (court) {
+        document.getElementById('courtModalTitle').textContent = 'Edit Court';
+        document.getElementById('courtName').value = court.name || '';
+        document.getElementById('courtLocation').value = court.location || '';
+        document.getElementById('courtType').value = court.type || '';
+        document.getElementById('courtNotes').value = court.notes || '';
+        document.getElementById('courtId').value = court.id || '';
+      } else {
+        document.getElementById('courtModalTitle').textContent = 'Add Court';
+        document.getElementById('courtName').value = '';
+        document.getElementById('courtLocation').value = '';
+        document.getElementById('courtType').value = '';
+        document.getElementById('courtNotes').value = '';
+        document.getElementById('courtId').value = '';
+      }
+    }
+    function closeCourtModal() {
+      document.getElementById('courtModal').classList.remove('show');
+    }
+    function saveCourt() {
+      const name = document.getElementById('courtName').value;
+      const location = document.getElementById('courtLocation').value;
+      const type = document.getElementBy
