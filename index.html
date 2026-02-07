@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Tennis Team Scheduler</title>
+<title>Tennis Team Scheduler - Admin Enhanced</title>
 <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -28,10 +28,14 @@
             border-radius: 8px; 
             cursor: pointer; 
             margin: 5px;
+            font-size: 14px;
         }
         .btn:hover { background: #5a6fd8; }
         .btn-secondary { background: #6c757d; }
         .btn-danger { background: #dc3545; }
+        .btn-success { background: #28a745; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-small { padding: 5px 10px; font-size: 12px; }
         .form-control { 
             width: 100%; 
             padding: 10px; 
@@ -89,7 +93,7 @@
             background: white; 
             padding: 30px; 
             border-radius: 15px; 
-            max-width: 500px; 
+            max-width: 600px; 
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
@@ -126,6 +130,82 @@
         }
         .event-item:hover { background: #e9ecef; }
         .hidden { display: none; }
+        .admin-nav {
+            background: #343a40;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .admin-nav button {
+            background: #495057;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .admin-nav button.active {
+            background: #667eea;
+        }
+        .admin-nav button:hover {
+            background: #6c757d;
+        }
+        .user-table, .event-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .user-table th, .user-table td,
+        .event-table th, .event-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .user-table th, .event-table th {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        .user-table tr:hover, .event-table tr:hover {
+            background: #f5f5f5;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
@@ -169,10 +249,91 @@
 </div>
 </div>
 </div>
-<div class="card">
+<!-- Admin Navigation -->
+<div class="admin-nav hidden" id="adminNav">
+<h3 style="margin-bottom: 15px;">🛠️ Admin Console</h3>
+<button class="active" id="dashboardBtn" onclick="showAdminSection('dashboard')">Dashboard</button>
+<button id="usersBtn" onclick="showAdminSection('users')">User Management</button>
+<button id="eventsBtn" onclick="showAdminSection('events')">Event Management</button>
+<button id="scheduleBtn" onclick="showAdminSection('schedule')">Schedule View</button>
+</div>
+<!-- Admin Dashboard -->
+<div class="card hidden" id="adminDashboard">
+<h3>📊 Admin Dashboard</h3>
+<div class="admin-stats">
+<div class="stat-card">
+<div class="stat-number" id="totalUsers">0</div>
+<div class="stat-label">Total Users</div>
+</div>
+<div class="stat-card">
+<div class="stat-number" id="totalEvents">0</div>
+<div class="stat-label">Total Events</div>
+</div>
+<div class="stat-card">
+<div class="stat-number" id="upcomingEvents">0</div>
+<div class="stat-label">Upcoming Events</div>
+</div>
+<div class="stat-card">
+<div class="stat-number" id="pendingRSVPs">0</div>
+<div class="stat-label">Pending RSVPs</div>
+</div>
+</div>
+<h4>Recent Activity</h4>
+<div id="recentActivity">
+<p>• System initialized</p>
+<p>• Admin user logged in</p>
+</div>
+</div>
+<!-- User Management -->
+<div class="card hidden" id="userManagement">
+<div class="header">
+<h3>👥 User Management</h3>
+<button class="btn" onclick="showCreateUser()">Add New User</button>
+</div>
+<table class="user-table">
+<thead>
+<tr>
+<th>Name</th>
+<th>Email</th>
+<th>Role</th>
+<th>Available Practice</th>
+<th>Available Matches</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="userTableBody">
+<!-- Users will be populated here -->
+</tbody>
+</table>
+</div>
+<!-- Event Management -->
+<div class="card hidden" id="eventManagement">
+<div class="header">
+<h3>📅 Event Management</h3>
+<button class="btn" onclick="showCreateEventAdmin()">Create New Event</button>
+</div>
+<table class="event-table">
+<thead>
+<tr>
+<th>Event</th>
+<th>Type</th>
+<th>Date</th>
+<th>Time</th>
+<th>Location</th>
+<th>RSVPs</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="eventTableBody">
+<!-- Events will be populated here -->
+</tbody>
+</table>
+</div>
+<!-- Regular Schedule View -->
+<div class="card" id="scheduleView">
 <div class="header">
 <h3>Team Schedule</h3>
-<div class="hidden" id="adminControls">
+<div id="regularControls">
 <button class="btn" onclick="showCreateEvent()">Add Event</button>
 </div>
 </div>
@@ -194,12 +355,12 @@
 <div id="eventsList"></div>
 </div>
 </div>
-<!-- Stats -->
-<div class="card">
+<!-- Stats (for non-admin users) -->
+<div class="card" id="regularStats">
 <h3>Quick Stats</h3>
 <p>Upcoming Matches: <span id="upcomingMatches">0</span></p>
 <p>My RSVPs: <span id="myRSVPs">0</span></p>
-<p>Team Members: 15</p>
+<p>Team Members: <span id="teamMemberCount">15</span></p>
 </div>
 </div>
 </div>
@@ -213,34 +374,119 @@
 <div id="eventContent"></div>
 </div>
 </div>
-<!-- Create Event Modal -->
+<!-- Create/Edit Event Modal -->
 <div class="modal" id="createEventModal">
 <div class="modal-content">
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-<h3>Create Event</h3>
+<h3 id="createEventTitle">Create Event</h3>
 <button onclick="closeCreateModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
 </div>
+<input id="editEventId" type="hidden"/>
+<div class="form-row">
+<div>
+<label class="form-label">Event Type</label>
 <select class="form-control" id="eventType">
 <option value="match">Match</option>
 <option value="practice">Practice</option>
 <option value="social">Social Event</option>
 </select>
+</div>
+<div>
+<label class="form-label">Date</label>
 <input class="form-control" id="eventDate" type="date"/>
+</div>
+</div>
+<div class="form-row">
+<div>
+<label class="form-label">Time</label>
 <input class="form-control" id="eventTime" type="time" value="18:00"/>
+</div>
+<div>
+<label class="form-label">Court Location</label>
 <select class="form-control" id="courtLocation">
 <option value="">Select Court...</option>
 <option value="1">Central Park Tennis Center - Court 1</option>
 <option value="2">Central Park Tennis Center - Court 2</option>
 <option value="3">Riverside Tennis Club - Court A</option>
+<option value="4">Riverside Tennis Club - Court B</option>
+<option value="5">Municipal Courts - Court 1</option>
+<option value="6">Municipal Courts - Court 2</option>
 </select>
+</div>
+</div>
+<div class="form-group">
+<label class="form-label">Opponent</label>
 <select class="form-control" id="opponent">
 <option value="">Select Opponent...</option>
 <option value="1">Eagles Tennis Team</option>
 <option value="2">Hawks Tennis Club</option>
 <option value="3">Lions Athletic Club</option>
+<option value="4">Tigers Tennis Academy</option>
+<option value="5">Panthers Sports Club</option>
+<option value="6">Wolves Tennis Team</option>
+<option value="7">Bears Athletic Club</option>
+<option value="8">Sharks Tennis Club</option>
 </select>
+</div>
+<div class="form-group">
+<label class="form-label">Description/Notes</label>
 <textarea class="form-control" id="eventDescription" placeholder="Description/Notes" rows="3"></textarea>
-<button class="btn" onclick="createEvent()">Create Event</button>
+</div>
+<button class="btn" id="saveEventBtn" onclick="saveEvent()">Create Event</button>
+</div>
+</div>
+<!-- User Edit Modal -->
+<div class="modal" id="userEditModal">
+<div class="modal-content">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<h3 id="userEditTitle">Edit User</h3>
+<button onclick="closeUserEditModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
+</div>
+<input id="editUserId" type="hidden"/>
+<div class="form-row">
+<div>
+<label class="form-label">First Name</label>
+<input class="form-control" id="editFirstName" type="text"/>
+</div>
+<div>
+<label class="form-label">Last Name</label>
+<input class="form-control" id="editLastName" type="text"/>
+</div>
+</div>
+<div class="form-group">
+<label class="form-label">Email</label>
+<input class="form-control" id="editEmail" type="email"/>
+</div>
+<div class="form-group">
+<label class="form-label">New Password (leave blank to keep current)</label>
+<input class="form-control" id="editPassword" placeholder="Enter new password" type="password"/>
+</div>
+<div class="form-row">
+<div>
+<label>
+<input id="editIsAdmin" type="checkbox"/> Admin User
+                    </label>
+</div>
+<div>
+<label>
+<input id="editAvailPractice" type="checkbox"/> Available for Practice
+                    </label>
+</div>
+</div>
+<div class="form-group">
+<label>
+<input id="editAvailMatches" type="checkbox"/> Available for Matches
+                </label>
+</div>
+<div class="form-group">
+<label class="form-label">Preferred Days</label>
+<textarea class="form-control" id="editPreferredDays" rows="2"></textarea>
+</div>
+<div class="form-group">
+<label class="form-label">Unavailable Dates</label>
+<textarea class="form-control" id="editUnavailableDates" rows="2"></textarea>
+</div>
+<button class="btn" onclick="saveUser()">Save Changes</button>
 </div>
 </div>
 <!-- Profile Modal -->
@@ -265,6 +511,7 @@
         let currentUser = null;
         let currentView = 'calendar';
         let currentDate = new Date();
+        let currentAdminSection = 'dashboard';
         let events = [];
         let users = [
             {
@@ -274,8 +521,34 @@
                 email: 'admin@tennis.com',
                 password: 'admin123',
                 isAdmin: true,
+                availablePractice: true,
+                availableMatches: true,
                 preferredDays: 'Any Tuesday',
                 unavailableDates: ''
+            },
+            {
+                id: 2,
+                firstName: 'John',
+                lastName: 'Smith',
+                email: 'john@tennis.com',
+                password: 'player123',
+                isAdmin: false,
+                availablePractice: true,
+                availableMatches: true,
+                preferredDays: 'First and third Tuesday',
+                unavailableDates: 'May 15-20'
+            },
+            {
+                id: 3,
+                firstName: 'Sarah',
+                lastName: 'Johnson',
+                email: 'sarah@tennis.com',
+                password: 'player123',
+                isAdmin: false,
+                availablePractice: false,
+                availableMatches: true,
+                preferredDays: 'Any Tuesday',
+                unavailableDates: 'June 10-15'
             }
         ];
 
@@ -290,7 +563,7 @@
                 court: 'Central Park Tennis Center - Court 1',
                 opponent: 'Eagles Tennis Team',
                 description: 'Season opener',
-                rsvps: {}
+                rsvps: { 1: 'yes', 2: 'maybe', 3: 'pending' }
             },
             {
                 id: 2,
@@ -300,9 +573,41 @@
                 time: '10:00',
                 court: 'Riverside Tennis Club - Court A',
                 description: 'Pre-season practice',
-                rsvps: {}
+                rsvps: { 1: 'yes', 2: 'yes', 3: 'no' }
+            },
+            {
+                id: 3,
+                type: 'match',
+                title: 'vs Hawks Tennis Club',
+                date: '2026-04-15',
+                time: '18:00',
+                court: 'Municipal Courts - Court 1',
+                opponent: 'Hawks Tennis Club',
+                description: 'League match',
+                rsvps: { 1: 'pending', 2: 'pending', 3: 'pending' }
             }
         ];
+
+        // Court and opponent data
+        const courts = {
+            1: 'Central Park Tennis Center - Court 1',
+            2: 'Central Park Tennis Center - Court 2',
+            3: 'Riverside Tennis Club - Court A',
+            4: 'Riverside Tennis Club - Court B',
+            5: 'Municipal Courts - Court 1',
+            6: 'Municipal Courts - Court 2'
+        };
+
+        const opponents = {
+            1: 'Eagles Tennis Team',
+            2: 'Hawks Tennis Club',
+            3: 'Lions Athletic Club',
+            4: 'Tigers Tennis Academy',
+            5: 'Panthers Sports Club',
+            6: 'Wolves Tennis Team',
+            7: 'Bears Athletic Club',
+            8: 'Sharks Tennis Club'
+        };
 
         // Utility functions
         function showNotification(message, type = 'success') {
@@ -336,12 +641,21 @@
                 document.getElementById('welcomeUser').textContent = `Welcome, ${user.firstName}!`;
                 
                 if (user.isAdmin) {
-                    document.getElementById('adminControls').classList.remove('hidden');
+                    document.getElementById('adminNav').classList.remove('hidden');
+                    document.getElementById('regularControls').classList.add('hidden');
+                    document.getElementById('regularStats').classList.add('hidden');
+                    showAdminSection('dashboard');
+                } else {
+                    document.getElementById('adminNav').classList.add('hidden');
+                    document.getElementById('regularControls').classList.remove('hidden');
+                    document.getElementById('regularStats').classList.remove('hidden');
+                    showScheduleView();
                 }
                 
                 show('mainApp');
                 renderCalendar();
                 updateStats();
+                updateAdminStats();
                 showNotification('Welcome back!');
             } else {
                 console.log('Login failed');
@@ -372,6 +686,8 @@
                 email,
                 password,
                 isAdmin: false,
+                availablePractice: true,
+                availableMatches: true,
                 preferredDays: '',
                 unavailableDates: ''
             };
@@ -382,6 +698,7 @@
             document.getElementById('welcomeUser').textContent = `Welcome, ${newUser.firstName}!`;
             
             show('mainApp');
+            showScheduleView();
             renderCalendar();
             updateStats();
             showNotification('Account created!');
@@ -402,6 +719,363 @@
             show('registerScreen');
         }
 
+        // Admin section management
+        function showAdminSection(section) {
+            currentAdminSection = section;
+            
+            // Update navigation
+            document.querySelectorAll('.admin-nav button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(section + 'Btn').classList.add('active');
+            
+            // Hide all sections
+            document.getElementById('adminDashboard').classList.add('hidden');
+            document.getElementById('userManagement').classList.add('hidden');
+            document.getElementById('eventManagement').classList.add('hidden');
+            document.getElementById('scheduleView').classList.add('hidden');
+            
+            // Show selected section
+            if (section === 'dashboard') {
+                document.getElementById('adminDashboard').classList.remove('hidden');
+                updateAdminStats();
+            } else if (section === 'users') {
+                document.getElementById('userManagement').classList.remove('hidden');
+                renderUserTable();
+            } else if (section === 'events') {
+                document.getElementById('eventManagement').classList.remove('hidden');
+                renderEventTable();
+            } else if (section === 'schedule') {
+                document.getElementById('scheduleView').classList.remove('hidden');
+                renderCalendar();
+            }
+        }
+
+        function showScheduleView() {
+            document.getElementById('adminDashboard').classList.add('hidden');
+            document.getElementById('userManagement').classList.add('hidden');
+            document.getElementById('eventManagement').classList.add('hidden');
+            document.getElementById('scheduleView').classList.remove('hidden');
+        }
+
+        // Admin dashboard functions
+        function updateAdminStats() {
+            const now = new Date();
+            const upcomingEvents = events.filter(e => new Date(e.date) >= now).length;
+            const pendingRSVPs = events.reduce((count, event) => {
+                return count + users.filter(user => !event.rsvps[user.id] || event.rsvps[user.id] === 'pending').length;
+            }, 0);
+            
+            document.getElementById('totalUsers').textContent = users.length;
+            document.getElementById('totalEvents').textContent = events.length;
+            document.getElementById('upcomingEvents').textContent = upcomingEvents;
+            document.getElementById('pendingRSVPs').textContent = pendingRSVPs;
+        }
+
+        // User management functions
+        function renderUserTable() {
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = '';
+            
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.firstName} ${user.lastName}</td>
+                    <td>${user.email}</td>
+                    <td>${user.isAdmin ? 'Admin' : 'Player'}</td>
+                    <td>${user.availablePractice ? 'Yes' : 'No'}</td>
+                    <td>${user.availableMatches ? 'Yes' : 'No'}</td>
+                    <td>
+                        <button onclick="editUser(${user.id})" class="btn btn-small">Edit</button>
+                        <button onclick="resetPassword(${user.id})" class="btn btn-warning btn-small">Reset Password</button>
+                        ${user.id !== 1 ? `<button onclick="deleteUser(${user.id})" class="btn btn-danger btn-small">Delete</button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function showCreateUser() {
+            document.getElementById('userEditTitle').textContent = 'Create New User';
+            document.getElementById('editUserId').value = '';
+            document.getElementById('editFirstName').value = '';
+            document.getElementById('editLastName').value = '';
+            document.getElementById('editEmail').value = '';
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editIsAdmin').checked = false;
+            document.getElementById('editAvailPractice').checked = true;
+            document.getElementById('editAvailMatches').checked = true;
+            document.getElementById('editPreferredDays').value = '';
+            document.getElementById('editUnavailableDates').value = '';
+            document.getElementById('userEditModal').classList.add('show');
+        }
+
+        function editUser(userId) {
+            const user = users.find(u => u.id === userId);
+            if (!user) return;
+            
+            document.getElementById('userEditTitle').textContent = 'Edit User';
+            document.getElementById('editUserId').value = user.id;
+            document.getElementById('editFirstName').value = user.firstName;
+            document.getElementById('editLastName').value = user.lastName;
+            document.getElementById('editEmail').value = user.email;
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editIsAdmin').checked = user.isAdmin;
+            document.getElementById('editAvailPractice').checked = user.availablePractice;
+            document.getElementById('editAvailMatches').checked = user.availableMatches;
+            document.getElementById('editPreferredDays').value = user.preferredDays || '';
+            document.getElementById('editUnavailableDates').value = user.unavailableDates || '';
+            document.getElementById('userEditModal').classList.add('show');
+        }
+
+        function saveUser() {
+            const userId = document.getElementById('editUserId').value;
+            const firstName = document.getElementById('editFirstName').value;
+            const lastName = document.getElementById('editLastName').value;
+            const email = document.getElementById('editEmail').value;
+            const password = document.getElementById('editPassword').value;
+            const isAdmin = document.getElementById('editIsAdmin').checked;
+            const availablePractice = document.getElementById('editAvailPractice').checked;
+            const availableMatches = document.getElementById('editAvailMatches').checked;
+            const preferredDays = document.getElementById('editPreferredDays').value;
+            const unavailableDates = document.getElementById('editUnavailableDates').value;
+            
+            if (!firstName || !lastName || !email) {
+                showNotification('Please fill required fields', 'error');
+                return;
+            }
+            
+            if (userId) {
+                // Edit existing user
+                const userIndex = users.findIndex(u => u.id == userId);
+                if (userIndex !== -1) {
+                    users[userIndex].firstName = firstName;
+                    users[userIndex].lastName = lastName;
+                    users[userIndex].email = email;
+                    if (password) {
+                        users[userIndex].password = password;
+                    }
+                    users[userIndex].isAdmin = isAdmin;
+                    users[userIndex].availablePractice = availablePractice;
+                    users[userIndex].availableMatches = availableMatches;
+                    users[userIndex].preferredDays = preferredDays;
+                    users[userIndex].unavailableDates = unavailableDates;
+                    
+                    showNotification('User updated successfully');
+                }
+            } else {
+                // Create new user
+                if (!password) {
+                    showNotification('Password required for new user', 'error');
+                    return;
+                }
+                
+                if (users.find(u => u.email === email)) {
+                    showNotification('Email already exists', 'error');
+                    return;
+                }
+                
+                const newUser = {
+                    id: Math.max(...users.map(u => u.id)) + 1,
+                    firstName,
+                    lastName,
+                    email,
+                    password,
+                    isAdmin,
+                    availablePractice,
+                    availableMatches,
+                    preferredDays,
+                    unavailableDates
+                };
+                
+                users.push(newUser);
+                showNotification('User created successfully');
+            }
+            
+            closeUserEditModal();
+            renderUserTable();
+            updateAdminStats();
+        }
+
+        function resetPassword(userId) {
+            const user = users.find(u => u.id === userId);
+            if (!user) return;
+            
+            const newPassword = prompt(`Enter new password for ${user.firstName} ${user.lastName}:`);
+            if (newPassword && newPassword.trim()) {
+                user.password = newPassword.trim();
+                showNotification(`Password reset for ${user.firstName} ${user.lastName}`);
+            }
+        }
+
+        function deleteUser(userId) {
+            const user = users.find(u => u.id === userId);
+            if (!user) return;
+            
+            if (confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?`)) {
+                users = users.filter(u => u.id !== userId);
+                renderUserTable();
+                updateAdminStats();
+                showNotification('User deleted');
+            }
+        }
+
+        function closeUserEditModal() {
+            document.getElementById('userEditModal').classList.remove('show');
+        }
+
+        // Event management functions
+        function renderEventTable() {
+            const tbody = document.getElementById('eventTableBody');
+            tbody.innerHTML = '';
+            
+            events.forEach(event => {
+                const rsvpCounts = users.reduce((counts, user) => {
+                    const rsvp = event.rsvps[user.id] || 'pending';
+                    counts[rsvp] = (counts[rsvp] || 0) + 1;
+                    return counts;
+                }, {});
+                
+                const rsvpSummary = `${rsvpCounts.yes || 0}Y/${rsvpCounts.no || 0}N/${rsvpCounts.maybe || 0}M/${rsvpCounts.pending || 0}P`;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${event.title}</td>
+                    <td>${event.type}</td>
+                    <td>${new Date(event.date).toLocaleDateString()}</td>
+                    <td>${event.time}</td>
+                    <td>${event.court || 'TBD'}</td>
+                    <td>${rsvpSummary}</td>
+                    <td>
+                        <button onclick="editEvent(${event.id})" class="btn btn-small">Edit</button>
+                        <button onclick="viewEventRSVPs(${event.id})" class="btn btn-secondary btn-small">RSVPs</button>
+                        <button onclick="deleteEventAdmin(${event.id})" class="btn btn-danger btn-small">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function showCreateEventAdmin() {
+            document.getElementById('createEventTitle').textContent = 'Create New Event';
+            document.getElementById('editEventId').value = '';
+            document.getElementById('eventType').value = 'match';
+            document.getElementById('eventDate').value = '';
+            document.getElementById('eventTime').value = '18:00';
+            document.getElementById('courtLocation').value = '';
+            document.getElementById('opponent').value = '';
+            document.getElementById('eventDescription').value = '';
+            document.getElementById('saveEventBtn').textContent = 'Create Event';
+            document.getElementById('createEventModal').classList.add('show');
+        }
+
+        function editEvent(eventId) {
+            const event = events.find(e => e.id === eventId);
+            if (!event) return;
+            
+            document.getElementById('createEventTitle').textContent = 'Edit Event';
+            document.getElementById('editEventId').value = event.id;
+            document.getElementById('eventType').value = event.type;
+            document.getElementById('eventDate').value = event.date;
+            document.getElementById('eventTime').value = event.time;
+            
+            // Find court ID
+            const courtId = Object.keys(courts).find(id => courts[id] === event.court);
+            document.getElementById('courtLocation').value = courtId || '';
+            
+            // Find opponent ID
+            const opponentId = Object.keys(opponents).find(id => opponents[id] === event.opponent);
+            document.getElementById('opponent').value = opponentId || '';
+            
+            document.getElementById('eventDescription').value = event.description || '';
+            document.getElementById('saveEventBtn').textContent = 'Update Event';
+            document.getElementById('createEventModal').classList.add('show');
+        }
+
+        function saveEvent() {
+            const eventId = document.getElementById('editEventId').value;
+            const type = document.getElementById('eventType').value;
+            const date = document.getElementById('eventDate').value;
+            const time = document.getElementById('eventTime').value;
+            const courtId = document.getElementById('courtLocation').value;
+            const opponentId = document.getElementById('opponent').value;
+            const description = document.getElementById('eventDescription').value;
+            
+            if (!date) {
+                showNotification('Please select a date', 'error');
+                return;
+            }
+            
+            const court = courts[courtId] || '';
+            const opponent = opponents[opponentId] || '';
+            
+            let title = '';
+            if (type === 'match' && opponent) {
+                title = `vs ${opponent}`;
+            } else if (type === 'practice') {
+                title = 'Team Practice';
+            } else {
+                title = description || 'Team Event';
+            }
+            
+            if (eventId) {
+                // Edit existing event
+                const eventIndex = events.findIndex(e => e.id == eventId);
+                if (eventIndex !== -1) {
+                    events[eventIndex].type = type;
+                    events[eventIndex].title = title;
+                    events[eventIndex].date = date;
+                    events[eventIndex].time = time;
+                    events[eventIndex].court = court;
+                    events[eventIndex].opponent = opponent;
+                    events[eventIndex].description = description;
+                    
+                    showNotification('Event updated successfully');
+                }
+            } else {
+                // Create new event
+                const newEvent = {
+                    id: Math.max(...events.map(e => e.id)) + 1,
+                    type,
+                    title,
+                    date,
+                    time,
+                    court,
+                    opponent,
+                    description,
+                    rsvps: {}
+                };
+                
+                events.push(newEvent);
+                showNotification('Event created successfully');
+            }
+            
+            closeCreateModal();
+            renderEventTable();
+            renderCalendar();
+            updateStats();
+            updateAdminStats();
+        }
+
+        function viewEventRSVPs(eventId) {
+            const event = events.find(e => e.id === eventId);
+            if (!event) return;
+            
+            showEventDetails(event);
+        }
+
+        function deleteEventAdmin(eventId) {
+            const event = events.find(e => e.id === eventId);
+            if (!event) return;
+            
+            if (confirm(`Are you sure you want to delete "${event.title}"?`)) {
+                events = events.filter(e => e.id !== eventId);
+                renderEventTable();
+                renderCalendar();
+                updateStats();
+                updateAdminStats();
+                showNotification('Event deleted');
+            }
+        }
+
         // View switching
         function switchView(view) {
             currentView = view;
@@ -420,7 +1094,7 @@
             }
         }
 
-        // Calendar functions
+        // Calendar rendering
         function renderCalendar() {
             const calendar = document.getElementById('calendar');
             const monthHeader = document.getElementById('monthHeader');
@@ -490,7 +1164,7 @@
                 if (currentUser && currentUser.isAdmin) {
                     if (confirm('No events on this day. Create one?')) {
                         document.getElementById('eventDate').value = date.toISOString().split('T')[0];
-                        showCreateEvent();
+                        showCreateEventAdmin();
                     }
                 } else {
                     showNotification('No events on this day');
@@ -516,21 +1190,58 @@
             
             const userRSVP = event.rsvps[currentUser.id] || 'pending';
             
+            let rsvpSection = '';
+            if (currentUser.isAdmin) {
+                // Admin view - show all RSVPs
+                rsvpSection = `
+                    <div style="margin: 20px 0;">
+                        <h4>Team RSVPs:</h4>
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 8px; border: 1px solid #ddd;">Player</th>
+                                <th style="padding: 8px; border: 1px solid #ddd;">Response</th>
+                            </tr>
+                `;
+                
+                users.forEach(user => {
+                    const rsvp = event.rsvps[user.id] || 'pending';
+                    rsvpSection += `
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${user.firstName} ${user.lastName}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${rsvp}</td>
+                        </tr>
+                    `;
+                });
+                
+                rsvpSection += '</table></div>';
+            } else {
+                // Regular user view - show own RSVP
+                rsvpSection = `
+                    <div style="margin: 20px 0;">
+                        <h4>Your RSVP:</h4>
+                        <label><input type="radio" name="rsvp" value="yes" ${userRSVP === 'yes' ? 'checked' : ''} onchange="updateRSVP(${event.id}, 'yes')"> Yes</label>
+                        <label><input type="radio" name="rsvp" value="no" ${userRSVP === 'no' ? 'checked' : ''} onchange="updateRSVP(${event.id}, 'no')"> No</label>
+                        <label><input type="radio" name="rsvp" value="maybe" ${userRSVP === 'maybe' ? 'checked' : ''} onchange="updateRSVP(${event.id}, 'maybe')"> Maybe</label>
+                    </div>
+                `;
+            }
+            
             document.getElementById('eventContent').innerHTML = `
                 <p><strong>Type:</strong> ${event.type}</p>
                 <p><strong>Date:</strong> ${new Date(event.date).toLocaleDateString()}</p>
                 <p><strong>Time:</strong> ${event.time}</p>
                 <p><strong>Location:</strong> ${event.court || 'TBD'}</p>
+                ${event.opponent ? `<p><strong>Opponent:</strong> ${event.opponent}</p>` : ''}
                 <p><strong>Description:</strong> ${event.description || 'None'}</p>
                 
-                <div style="margin: 20px 0;">
-                    <h4>Your RSVP:</h4>
-                    <label><input type="radio" name="rsvp" value="yes" ${userRSVP === 'yes' ? 'checked' : ''} onchange="updateRSVP(${event.id}, 'yes')"> Yes</label>
-                    <label><input type="radio" name="rsvp" value="no" ${userRSVP === 'no' ? 'checked' : ''} onchange="updateRSVP(${event.id}, 'no')"> No</label>
-                    <label><input type="radio" name="rsvp" value="maybe" ${userRSVP === 'maybe' ? 'checked' : ''} onchange="updateRSVP(${event.id}, 'maybe')"> Maybe</label>
-                </div>
+                ${rsvpSection}
                 
-                ${currentUser.isAdmin ? `<button onclick="deleteEvent(${event.id})" class="btn btn-danger">Delete Event</button>` : ''}
+                ${currentUser.isAdmin ? `
+                    <div style="margin-top: 20px;">
+                        <button onclick="editEvent(${event.id}); closeModal();" class="btn">Edit Event</button>
+                        <button onclick="deleteEventAdmin(${event.id}); closeModal();" class="btn btn-danger">Delete Event</button>
+                    </div>
+                ` : ''}
             `;
             
             document.getElementById('eventModal').classList.add('show');
@@ -542,6 +1253,10 @@
                 event.rsvps[currentUser.id] = status;
                 showNotification(`RSVP updated: ${status}`);
                 updateStats();
+                updateAdminStats();
+                if (currentAdminSection === 'events') {
+                    renderEventTable();
+                }
             }
         }
 
@@ -551,53 +1266,17 @@
                 closeModal();
                 renderCalendar();
                 updateStats();
+                updateAdminStats();
                 showNotification('Event deleted');
             }
         }
 
         function showCreateEvent() {
-            document.getElementById('createEventModal').classList.add('show');
+            showCreateEventAdmin();
         }
 
         function createEvent() {
-            const type = document.getElementById('eventType').value;
-            const date = document.getElementById('eventDate').value;
-            const time = document.getElementById('eventTime').value;
-            const court = document.getElementById('courtLocation').selectedOptions[0]?.text || '';
-            const opponent = document.getElementById('opponent').selectedOptions[0]?.text || '';
-            const description = document.getElementById('eventDescription').value;
-            
-            if (!date) {
-                showNotification('Please select a date', 'error');
-                return;
-            }
-            
-            let title = '';
-            if (type === 'match' && opponent) {
-                title = `vs ${opponent}`;
-            } else if (type === 'practice') {
-                title = 'Team Practice';
-            } else {
-                title = description || 'Team Event';
-            }
-            
-            const newEvent = {
-                id: events.length + 1,
-                type,
-                title,
-                date,
-                time,
-                court,
-                opponent,
-                description,
-                rsvps: {}
-            };
-            
-            events.push(newEvent);
-            closeCreateModal();
-            renderCalendar();
-            updateStats();
-            showNotification('Event created!');
+            saveEvent();
         }
 
         function renderEventsList() {
@@ -648,6 +1327,10 @@
             document.getElementById('welcomeUser').textContent = `Welcome, ${currentUser.firstName}!`;
             closeProfileModal();
             showNotification('Profile updated!');
+            
+            if (currentAdminSection === 'users') {
+                renderUserTable();
+            }
         }
 
         // Modal management
@@ -671,6 +1354,7 @@
             
             document.getElementById('upcomingMatches').textContent = upcomingMatches;
             document.getElementById('myRSVPs').textContent = myRSVPs;
+            document.getElementById('teamMemberCount').textContent = users.length;
         }
 
         // Initialize app
@@ -685,12 +1369,21 @@
                     document.getElementById('welcomeUser').textContent = `Welcome, ${currentUser.firstName}!`;
                     
                     if (currentUser.isAdmin) {
-                        document.getElementById('adminControls').classList.remove('hidden');
+                        document.getElementById('adminNav').classList.remove('hidden');
+                        document.getElementById('regularControls').classList.add('hidden');
+                        document.getElementById('regularStats').classList.add('hidden');
+                        showAdminSection('dashboard');
+                    } else {
+                        document.getElementById('adminNav').classList.add('hidden');
+                        document.getElementById('regularControls').classList.remove('hidden');
+                        document.getElementById('regularStats').classList.remove('hidden');
+                        showScheduleView();
                     }
                     
                     show('mainApp');
                     renderCalendar();
                     updateStats();
+                    updateAdminStats();
                 } catch (e) {
                     console.log('Error loading saved user');
                     show('loginScreen');
