@@ -4,13 +4,15 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>My Tennis Scheduler - Admin Enhanced</title>
+<title>My Tennis Scheduler - Team Management</title>
 <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: Arial, sans-serif; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%),
+                        url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80') center/cover no-repeat;
             min-height: 100vh;
+            background-attachment: fixed;
         }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
         .card { 
@@ -50,10 +52,12 @@
             min-height: 100vh; 
         }
         .login-card { 
-            background: white; 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(10px);
             padding: 40px; 
             border-radius: 15px; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             max-width: 400px;
             width: 100%;
         }
@@ -250,6 +254,8 @@
 <button class="active" id="dashboardBtn" onclick="showAdminSection('dashboard')">Dashboard</button>
 <button id="usersBtn" onclick="showAdminSection('users')">User Management</button>
 <button id="eventsBtn" onclick="showAdminSection('events')">Event Management</button>
+<button id="courtsBtn" onclick="showAdminSection('courts')">Court Management</button>
+<button id="opponentsBtn" onclick="showAdminSection('opponents')">Opponent Management</button>
 <button id="scheduleBtn" onclick="showAdminSection('schedule')">Schedule View</button>
 </div>
 <!-- Admin Dashboard -->
@@ -298,6 +304,47 @@
 </thead>
 <tbody id="userTableBody">
 <!-- Users will be populated here -->
+</tbody>
+</table>
+</div>
+<!-- Court Management -->
+<div class="card hidden" id="courtManagement">
+<div class="header">
+<h3>🏟️ Court Management</h3>
+<button class="btn" onclick="showCreateCourt()">Add New Court</button>
+</div>
+<table class="user-table">
+<thead>
+<tr>
+<th>Court Name</th>
+<th>Location</th>
+<th>Type</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="courtTableBody">
+<!-- Courts will be populated here -->
+</tbody>
+</table>
+</div>
+<!-- Opponent Management -->
+<div class="card hidden" id="opponentManagement">
+<div class="header">
+<h3>⚔️ Opponent Management</h3>
+<button class="btn" onclick="showCreateOpponent()">Add New Opponent</button>
+</div>
+<table class="user-table">
+<thead>
+<tr>
+<th>Team Name</th>
+<th>Contact</th>
+<th>League</th>
+<th>Record vs Us</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="opponentTableBody">
+<!-- Opponents will be populated here -->
 </tbody>
 </table>
 </div>
@@ -400,34 +447,24 @@
 <label class="form-label">Court Location</label>
 <select class="form-control" id="courtLocation">
 <option value="">Select Court...</option>
-<option value="1">Apex Tennis Center - Indoor Court 1</option>
-<option value="2">Apex Tennis Center - Indoor Court 2</option>
-<option value="3">Apex Tennis Center - Outdoor Court A</option>
-<option value="4">Apex Tennis Center - Outdoor Court B</option>
-<option value="5">Arvada Tennis Center - Court 1</option>
-<option value="6">Arvada Tennis Center - Court 2</option>
-<option value="7">North Jeffco Park - Court 1</option>
-<option value="8">North Jeffco Park - Court 2</option>
-<option value="9">Majestic View Park - Court 1</option>
-<option value="10">Clear Creek Valley Park - Court 1</option>
-<option value="11">Clear Creek Valley Park - Court 2</option>
-<option value="12">NJTC Club Courts - Court A</option>
 </select>
 </div>
 </div>
-<div class="form-group">
+<div class="form-row">
+<div>
 <label class="form-label">Opponent</label>
 <select class="form-control" id="opponent">
 <option value="">Select Opponent...</option>
-<option value="1">Eagles Tennis Team</option>
-<option value="2">Hawks Tennis Club</option>
-<option value="3">Lions Athletic Club</option>
-<option value="4">Tigers Tennis Academy</option>
-<option value="5">Panthers Sports Club</option>
-<option value="6">Wolves Tennis Team</option>
-<option value="7">Bears Athletic Club</option>
-<option value="8">Sharks Tennis Club</option>
 </select>
+</div>
+<div>
+<label class="form-label">Home/Away</label>
+<select class="form-control" id="homeAway">
+<option value="">Select...</option>
+<option value="Home">🏠 Home</option>
+<option value="Away">✈️ Away</option>
+</select>
+</div>
 </div>
 <div class="form-group">
 <label class="form-label">Description/Notes</label>
@@ -490,6 +527,88 @@
 <button class="btn" onclick="saveUser()">Save Changes</button>
 </div>
 </div>
+<!-- Court Edit Modal -->
+<div class="modal" id="courtEditModal">
+<div class="modal-content">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<h3 id="courtEditTitle">Edit Court</h3>
+<button onclick="closeCourtEditModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
+</div>
+<input id="editCourtId" type="hidden"/>
+<div class="form-group">
+<label class="form-label">Court Name</label>
+<input class="form-control" id="editCourtName" placeholder="e.g., Court 1, Indoor Court A" type="text"/>
+</div>
+<div class="form-group">
+<label class="form-label">Location/Facility</label>
+<input class="form-control" id="editCourtLocation" placeholder="e.g., Apex Tennis Center" type="text"/>
+</div>
+<div class="form-group">
+<label class="form-label">Court Type</label>
+<select class="form-control" id="editCourtType">
+<option value="Indoor">Indoor</option>
+<option value="Outdoor">Outdoor</option>
+<option value="Clay">Clay</option>
+<option value="Hard">Hard Court</option>
+<option value="Grass">Grass</option>
+</select>
+</div>
+<div class="form-group">
+<label class="form-label">Notes</label>
+<textarea class="form-control" id="editCourtNotes" placeholder="Additional information about this court" rows="2"></textarea>
+</div>
+<button class="btn" onclick="saveCourt()">Save Court</button>
+</div>
+</div>
+<!-- Opponent Edit Modal -->
+<div class="modal" id="opponentEditModal">
+<div class="modal-content">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<h3 id="opponentEditTitle">Edit Opponent</h3>
+<button onclick="closeOpponentEditModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
+</div>
+<input id="editOpponentId" type="hidden"/>
+<div class="form-group">
+<label class="form-label">Team Name</label>
+<input class="form-control" id="editOpponentName" placeholder="e.g., Eagles Tennis Team" type="text"/>
+</div>
+<div class="form-group">
+<label class="form-label">Contact Person</label>
+<input class="form-control" id="editOpponentContact" placeholder="Captain or contact name" type="text"/>
+</div>
+<div class="form-group">
+<label class="form-label">Contact Email</label>
+<input class="form-control" id="editOpponentEmail" placeholder="contact@team.com" type="email"/>
+</div>
+<div class="form-group">
+<label class="form-label">Phone</label>
+<input class="form-control" id="editOpponentPhone" placeholder="(555) 123-4567" type="tel"/>
+</div>
+<div class="form-group">
+<label class="form-label">League/Division</label>
+<input class="form-control" id="editOpponentLeague" placeholder="e.g., USTA 4.0, Local League" type="text"/>
+</div>
+<div class="form-group">
+<label class="form-label">Notes</label>
+<textarea class="form-control" id="editOpponentNotes" placeholder="Additional information about this team" rows="2"></textarea>
+</div>
+<button class="btn" onclick="saveOpponent()">Save Opponent</button>
+</div>
+</div>
+<!-- Historical Update Confirmation Modal -->
+<div class="modal" id="historicalUpdateModal">
+<div class="modal-content">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<h3>⚠️ Update Historical Data?</h3>
+<button onclick="closeHistoricalModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
+</div>
+<p id="historicalMessage">This change will affect past events. Do you want to update historical records?</p>
+<div style="margin-top: 20px;">
+<button class="btn btn-danger" onclick="confirmHistoricalUpdate(true)">Yes, Update All Records</button>
+<button class="btn btn-secondary" onclick="confirmHistoricalUpdate(false)">No, Keep Historical Data</button>
+</div>
+</div>
+</div>
 <!-- Profile Modal -->
 <div class="modal" id="profileModal">
 <div class="modal-content">
@@ -514,8 +633,22 @@
         let currentDate = new Date();
         let currentAdminSection = 'dashboard';
         let events = [];
+        
         // Load users from localStorage or use defaults
-        let users = JSON.parse(localStorage.getItem('tennisUsers')) || [
+        function loadUsers() {
+            try {
+                const savedUsers = localStorage.getItem('tennisUsers');
+                if (savedUsers && savedUsers !== 'null') {
+                    const parsed = JSON.parse(savedUsers);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        return parsed;
+                    }
+                }
+            } catch (e) {
+                console.log('Error loading users from localStorage:', e);
+            }
+            
+            return [
             {
                 id: 1,
                 firstName: 'Admin',
@@ -551,29 +684,44 @@
                 availableMatches: true,
                 preferredDays: 'Any Tuesday',
                 unavailableDates: 'June 10-15'
-            }
-        ];
-
-        // Save users to localStorage whenever users array changes
-        function saveUsers() {
-            localStorage.setItem('tennisUsers', JSON.stringify(users));
+            }];
         }
 
-        // Save events to localStorage whenever events array changes
-        function saveEvents() {
-            localStorage.setItem('tennisEvents', JSON.stringify(events));
+        let users = loadUsers();
+
+        // Save users to localStorage
+        function saveUsers() {
+            try {
+                localStorage.setItem('tennisUsers', JSON.stringify(users));
+            } catch (e) {
+                console.error('Error saving users:', e);
+            }
         }
 
         // Load events from localStorage or use defaults
-        events = JSON.parse(localStorage.getItem('tennisEvents')) || [
+        function loadEvents() {
+            try {
+                const savedEvents = localStorage.getItem('tennisEvents');
+                if (savedEvents && savedEvents !== 'null') {
+                    const parsed = JSON.parse(savedEvents);
+                    if (Array.isArray(parsed)) {
+                        return parsed;
+                    }
+                }
+            } catch (e) {
+                console.log('Error loading events from localStorage:', e);
+            }
+            
+            return [
             {
                 id: 1,
                 type: 'match',
-                title: 'vs Eagles Tennis Team',
+                title: '🏠 vs Eagles Tennis Team',
                 date: '2026-04-08',
                 time: '18:00',
                 court: 'Apex Tennis Center - Indoor Court 1',
                 opponent: 'Eagles Tennis Team',
+                homeAway: 'Home',
                 description: 'Season opener',
                 rsvps: { 1: 'yes', 2: 'maybe', 3: 'pending' }
             },
@@ -590,42 +738,115 @@
             {
                 id: 3,
                 type: 'match',
-                title: 'vs Hawks Tennis Club',
+                title: '✈️ vs Hawks Tennis Club',
                 date: '2026-04-15',
                 time: '18:00',
                 court: 'Clear Creek Valley Park - Court 1',
                 opponent: 'Hawks Tennis Club',
+                homeAway: 'Away',
                 description: 'League match',
                 rsvps: { 1: 'pending', 2: 'pending', 3: 'pending' }
             }
         ];
+        }
 
-        // Court and opponent data
-        const courts = {
-            1: 'Apex Tennis Center - Indoor Court 1',
-            2: 'Apex Tennis Center - Indoor Court 2',
-            3: 'Apex Tennis Center - Outdoor Court A',
-            4: 'Apex Tennis Center - Outdoor Court B',
-            5: 'Arvada Tennis Center - Court 1',
-            6: 'Arvada Tennis Center - Court 2',
-            7: 'North Jeffco Park - Court 1',
-            8: 'North Jeffco Park - Court 2',
-            9: 'Majestic View Park - Court 1',
-            10: 'Clear Creek Valley Park - Court 1',
-            11: 'Clear Creek Valley Park - Court 2',
-            12: 'NJTC Club Courts - Court A'
-        };
+        events = loadEvents();
 
-        const opponents = {
-            1: 'Eagles Tennis Team',
-            2: 'Hawks Tennis Club',
-            3: 'Lions Athletic Club',
-            4: 'Tigers Tennis Academy',
-            5: 'Panthers Sports Club',
-            6: 'Wolves Tennis Team',
-            7: 'Bears Athletic Club',
-            8: 'Sharks Tennis Club'
-        };
+        // Save events to localStorage
+        function saveEvents() {
+            try {
+                localStorage.setItem('tennisEvents', JSON.stringify(events));
+            } catch (e) {
+                console.error('Error saving events:', e);
+            }
+        }
+
+        // Load courts from localStorage or use defaults
+        function loadCourts() {
+            try {
+                const savedCourts = localStorage.getItem('tennisCourts');
+                if (savedCourts && savedCourts !== 'null') {
+                    const parsed = JSON.parse(savedCourts);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        return parsed;
+                    }
+                }
+            } catch (e) {
+                console.log('Error loading courts from localStorage:', e);
+            }
+            
+            return [
+                { id: 1, name: 'Indoor Court 1', location: 'Apex Tennis Center', type: 'Indoor', notes: '' },
+                { id: 2, name: 'Indoor Court 2', location: 'Apex Tennis Center', type: 'Indoor', notes: '' },
+                { id: 3, name: 'Outdoor Court A', location: 'Apex Tennis Center', type: 'Outdoor', notes: '' },
+                { id: 4, name: 'Outdoor Court B', location: 'Apex Tennis Center', type: 'Outdoor', notes: '' },
+                { id: 5, name: 'Court 1', location: 'Arvada Tennis Center', type: 'Outdoor', notes: '' },
+                { id: 6, name: 'Court 2', location: 'Arvada Tennis Center', type: 'Outdoor', notes: '' },
+                { id: 7, name: 'Court 1', location: 'North Jeffco Park', type: 'Outdoor', notes: '' },
+                { id: 8, name: 'Court 2', location: 'North Jeffco Park', type: 'Outdoor', notes: '' },
+                { id: 9, name: 'Court 1', location: 'Majestic View Park', type: 'Outdoor', notes: '' },
+                { id: 10, name: 'Court 1', location: 'Clear Creek Valley Park', type: 'Outdoor', notes: '' },
+                { id: 11, name: 'Court 2', location: 'Clear Creek Valley Park', type: 'Outdoor', notes: '' },
+                { id: 12, name: 'Court A', location: 'NJTC Club Courts', type: 'Indoor', notes: '' }
+            ];
+        }
+
+        // Load opponents from localStorage or use defaults
+        function loadOpponents() {
+            try {
+                const savedOpponents = localStorage.getItem('tennisOpponents');
+                if (savedOpponents && savedOpponents !== 'null') {
+                    const parsed = JSON.parse(savedOpponents);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        return parsed;
+                    }
+                }
+            } catch (e) {
+                console.log('Error loading opponents from localStorage:', e);
+            }
+            
+            return [
+                { id: 1, name: 'Eagles Tennis Team', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 },
+                { id: 2, name: 'Hawks Tennis Club', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 },
+                { id: 3, name: 'Lions Athletic Club', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 },
+                { id: 4, name: 'Tigers Tennis Academy', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 },
+                { id: 5, name: 'Panthers Sports Club', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 },
+                { id: 6, name: 'Wolves Tennis Team', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 },
+                { id: 7, name: 'Bears Athletic Club', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 },
+                { id: 8, name: 'Sharks Tennis Club', contact: '', email: '', phone: '', league: '', notes: '', wins: 0, losses: 0 }
+            ];
+        }
+
+        let courts = loadCourts();
+        let opponents = loadOpponents();
+
+        // Save functions
+        function saveCourts() {
+            try {
+                localStorage.setItem('tennisCourts', JSON.stringify(courts));
+            } catch (e) {
+                console.error('Error saving courts:', e);
+            }
+        }
+
+        function saveOpponents() {
+            try {
+                localStorage.setItem('tennisOpponents', JSON.stringify(opponents));
+            } catch (e) {
+                console.error('Error saving opponents:', e);
+            }
+        }
+
+        // Helper functions to get court/opponent display names
+        function getCourtDisplayName(courtId) {
+            const court = courts.find(c => c.id == courtId);
+            return court ? `${court.location} - ${court.name}` : '';
+        }
+
+        function getOpponentDisplayName(opponentId) {
+            const opponent = opponents.find(o => o.id == opponentId);
+            return opponent ? opponent.name : '';
+        }
 
         // Utility functions
         function showNotification(message, type = 'success') {
@@ -644,16 +865,12 @@
 
         // Authentication
         function login() {
-            console.log('Login function called');
-            const email = document.getElementById('email').value;
+            const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             
-            console.log('Login attempt:', email, password ? '***' : 'empty');
-            
-            const user = users.find(u => u.email === email && u.password === password);
+            const user = users.find(u => u.email.toLowerCase() === email && u.password === password);
             
             if (user) {
-                console.log('Login successful');
                 currentUser = user;
                 localStorage.setItem('tennisUser', JSON.stringify(user));
                 document.getElementById('welcomeUser').textContent = `Welcome, ${user.firstName}!`;
@@ -676,7 +893,6 @@
                 updateAdminStats();
                 showNotification('Welcome back!');
             } else {
-                console.log('Login failed');
                 showNotification('Invalid credentials', 'error');
             }
         }
@@ -684,7 +900,7 @@
         function register() {
             const firstName = document.getElementById('regFirstName').value;
             const lastName = document.getElementById('regLastName').value;
-            const email = document.getElementById('regEmail').value;
+            const email = document.getElementById('regEmail').value.trim().toLowerCase();
             const password = document.getElementById('regPassword').value;
             
             if (!firstName || !lastName || !email || !password) {
@@ -692,7 +908,7 @@
                 return;
             }
             
-            if (users.find(u => u.email === email)) {
+            if (users.find(u => u.email.toLowerCase() === email)) {
                 showNotification('Email already exists', 'error');
                 return;
             }
@@ -711,7 +927,7 @@
             };
             
             users.push(newUser);
-            saveUsers(); // Save users to localStorage
+            saveUsers();
             currentUser = newUser;
             localStorage.setItem('tennisUser', JSON.stringify(newUser));
             document.getElementById('welcomeUser').textContent = `Welcome, ${newUser.firstName}!`;
@@ -750,6 +966,8 @@
             document.getElementById('adminDashboard').classList.add('hidden');
             document.getElementById('userManagement').classList.add('hidden');
             document.getElementById('eventManagement').classList.add('hidden');
+            document.getElementById('courtManagement').classList.add('hidden');
+            document.getElementById('opponentManagement').classList.add('hidden');
             document.getElementById('scheduleView').classList.add('hidden');
             
             // Show selected section
@@ -762,6 +980,12 @@
             } else if (section === 'events') {
                 document.getElementById('eventManagement').classList.remove('hidden');
                 renderEventTable();
+            } else if (section === 'courts') {
+                document.getElementById('courtManagement').classList.remove('hidden');
+                renderCourtTable();
+            } else if (section === 'opponents') {
+                document.getElementById('opponentManagement').classList.remove('hidden');
+                renderOpponentTable();
             } else if (section === 'schedule') {
                 document.getElementById('scheduleView').classList.remove('hidden');
                 renderCalendar();
@@ -772,6 +996,8 @@
             document.getElementById('adminDashboard').classList.add('hidden');
             document.getElementById('userManagement').classList.add('hidden');
             document.getElementById('eventManagement').classList.add('hidden');
+            document.getElementById('courtManagement').classList.add('hidden');
+            document.getElementById('opponentManagement').classList.add('hidden');
             document.getElementById('scheduleView').classList.remove('hidden');
         }
 
@@ -880,7 +1106,7 @@
                     
                     showNotification('User updated successfully');
                 }
-                saveUsers(); // Save users to localStorage
+                saveUsers();
             } else {
                 // Create new user
                 if (!password) {
@@ -888,7 +1114,7 @@
                     return;
                 }
                 
-                if (users.find(u => u.email === email)) {
+                if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
                     showNotification('Email already exists', 'error');
                     return;
                 }
@@ -907,7 +1133,7 @@
                 };
                 
                 users.push(newUser);
-                saveUsers(); // Save users to localStorage
+                saveUsers();
                 showNotification('User created successfully');
             }
             
@@ -923,7 +1149,7 @@
             const newPassword = prompt(`Enter new password for ${user.firstName} ${user.lastName}:`);
             if (newPassword && newPassword.trim()) {
                 user.password = newPassword.trim();
-                saveUsers(); // Save users to localStorage
+                saveUsers();
                 showNotification(`Password reset for ${user.firstName} ${user.lastName}`);
             }
         }
@@ -934,7 +1160,7 @@
             
             if (confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?`)) {
                 users = users.filter(u => u.id !== userId);
-                saveUsers(); // Save users to localStorage
+                saveUsers();
                 renderUserTable();
                 updateAdminStats();
                 showNotification('User deleted');
@@ -943,6 +1169,357 @@
 
         function closeUserEditModal() {
             document.getElementById('userEditModal').classList.remove('show');
+        }
+
+        // Court management functions
+        function renderCourtTable() {
+            const tbody = document.getElementById('courtTableBody');
+            tbody.innerHTML = '';
+            
+            courts.forEach(court => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${court.name}</td>
+                    <td>${court.location}</td>
+                    <td>${court.type}</td>
+                    <td>
+                        <button onclick="editCourt(${court.id})" class="btn btn-small">Edit</button>
+                        <button onclick="deleteCourt(${court.id})" class="btn btn-danger btn-small">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function showCreateCourt() {
+            document.getElementById('courtEditTitle').textContent = 'Create New Court';
+            document.getElementById('editCourtId').value = '';
+            document.getElementById('editCourtName').value = '';
+            document.getElementById('editCourtLocation').value = '';
+            document.getElementById('editCourtType').value = 'Outdoor';
+            document.getElementById('editCourtNotes').value = '';
+            document.getElementById('courtEditModal').classList.add('show');
+        }
+
+        function editCourt(courtId) {
+            const court = courts.find(c => c.id === courtId);
+            if (!court) return;
+            
+            document.getElementById('courtEditTitle').textContent = 'Edit Court';
+            document.getElementById('editCourtId').value = court.id;
+            document.getElementById('editCourtName').value = court.name;
+            document.getElementById('editCourtLocation').value = court.location;
+            document.getElementById('editCourtType').value = court.type;
+            document.getElementById('editCourtNotes').value = court.notes || '';
+            document.getElementById('courtEditModal').classList.add('show');
+        }
+
+        function saveCourt() {
+            const courtId = document.getElementById('editCourtId').value;
+            const name = document.getElementById('editCourtName').value;
+            const location = document.getElementById('editCourtLocation').value;
+            const type = document.getElementById('editCourtType').value;
+            const notes = document.getElementById('editCourtNotes').value;
+            
+            if (!name || !location) {
+                showNotification('Please fill required fields', 'error');
+                return;
+            }
+            
+            if (courtId) {
+                // Edit existing court
+                const courtIndex = courts.findIndex(c => c.id == courtId);
+                if (courtIndex !== -1) {
+                    const oldCourt = courts[courtIndex];
+                    courts[courtIndex] = { ...oldCourt, name, location, type, notes };
+                    
+                    // Check if this affects historical events
+                    const affectedEvents = events.filter(e => e.court === getCourtDisplayName(courtId));
+                    if (affectedEvents.length > 0) {
+                        showHistoricalUpdateConfirmation('court', courtId, oldCourt, { name, location, type, notes });
+                        return;
+                    }
+                    
+                    showNotification('Court updated successfully');
+                }
+            } else {
+                // Create new court
+                const newCourt = {
+                    id: Math.max(...courts.map(c => c.id)) + 1,
+                    name,
+                    location,
+                    type,
+                    notes
+                };
+                
+                courts.push(newCourt);
+                showNotification('Court created successfully');
+            }
+            
+            saveCourts();
+            closeCourtEditModal();
+            renderCourtTable();
+            updateCourtDropdowns();
+        }
+
+        function deleteCourt(courtId) {
+            const court = courts.find(c => c.id === courtId);
+            if (!court) return;
+            
+            // Check if court is used in any events
+            const usedInEvents = events.filter(e => e.court === getCourtDisplayName(courtId));
+            if (usedInEvents.length > 0) {
+                showNotification(`Cannot delete court. It's used in ${usedInEvents.length} event(s).`, 'error');
+                return;
+            }
+            
+            if (confirm(`Are you sure you want to delete "${court.location} - ${court.name}"?`)) {
+                courts = courts.filter(c => c.id !== courtId);
+                saveCourts();
+                renderCourtTable();
+                updateCourtDropdowns();
+                showNotification('Court deleted');
+            }
+        }
+
+        function closeCourtEditModal() {
+            document.getElementById('courtEditModal').classList.remove('show');
+        }
+
+        // Opponent management functions
+        function renderOpponentTable() {
+            const tbody = document.getElementById('opponentTableBody');
+            tbody.innerHTML = '';
+            
+            opponents.forEach(opponent => {
+                const record = `${opponent.wins || 0}-${opponent.losses || 0}`;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${opponent.name}</td>
+                    <td>${opponent.contact || 'N/A'}</td>
+                    <td>${opponent.league || 'N/A'}</td>
+                    <td>${record}</td>
+                    <td>
+                        <button onclick="editOpponent(${opponent.id})" class="btn btn-small">Edit</button>
+                        <button onclick="deleteOpponent(${opponent.id})" class="btn btn-danger btn-small">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function showCreateOpponent() {
+            document.getElementById('opponentEditTitle').textContent = 'Create New Opponent';
+            document.getElementById('editOpponentId').value = '';
+            document.getElementById('editOpponentName').value = '';
+            document.getElementById('editOpponentContact').value = '';
+            document.getElementById('editOpponentEmail').value = '';
+            document.getElementById('editOpponentPhone').value = '';
+            document.getElementById('editOpponentLeague').value = '';
+            document.getElementById('editOpponentNotes').value = '';
+            document.getElementById('opponentEditModal').classList.add('show');
+        }
+
+        function editOpponent(opponentId) {
+            const opponent = opponents.find(o => o.id === opponentId);
+            if (!opponent) return;
+            
+            document.getElementById('opponentEditTitle').textContent = 'Edit Opponent';
+            document.getElementById('editOpponentId').value = opponent.id;
+            document.getElementById('editOpponentName').value = opponent.name;
+            document.getElementById('editOpponentContact').value = opponent.contact || '';
+            document.getElementById('editOpponentEmail').value = opponent.email || '';
+            document.getElementById('editOpponentPhone').value = opponent.phone || '';
+            document.getElementById('editOpponentLeague').value = opponent.league || '';
+            document.getElementById('editOpponentNotes').value = opponent.notes || '';
+            document.getElementById('opponentEditModal').classList.add('show');
+        }
+
+        function saveOpponent() {
+            const opponentId = document.getElementById('editOpponentId').value;
+            const name = document.getElementById('editOpponentName').value;
+            const contact = document.getElementById('editOpponentContact').value;
+            const email = document.getElementById('editOpponentEmail').value;
+            const phone = document.getElementById('editOpponentPhone').value;
+            const league = document.getElementById('editOpponentLeague').value;
+            const notes = document.getElementById('editOpponentNotes').value;
+            
+            if (!name) {
+                showNotification('Please enter team name', 'error');
+                return;
+            }
+            
+            if (opponentId) {
+                // Edit existing opponent
+                const opponentIndex = opponents.findIndex(o => o.id == opponentId);
+                if (opponentIndex !== -1) {
+                    const oldOpponent = opponents[opponentIndex];
+                    opponents[opponentIndex] = { 
+                        ...oldOpponent, 
+                        name, 
+                        contact, 
+                        email, 
+                        phone, 
+                        league, 
+                        notes 
+                    };
+                    
+                    // Check if this affects historical events
+                    const affectedEvents = events.filter(e => e.opponent === oldOpponent.name);
+                    if (affectedEvents.length > 0) {
+                        showHistoricalUpdateConfirmation('opponent', opponentId, oldOpponent, { name, contact, email, phone, league, notes });
+                        return;
+                    }
+                    
+                    showNotification('Opponent updated successfully');
+                }
+            } else {
+                // Create new opponent
+                const newOpponent = {
+                    id: Math.max(...opponents.map(o => o.id)) + 1,
+                    name,
+                    contact,
+                    email,
+                    phone,
+                    league,
+                    notes,
+                    wins: 0,
+                    losses: 0
+                };
+                
+                opponents.push(newOpponent);
+                showNotification('Opponent created successfully');
+            }
+            
+            saveOpponents();
+            closeOpponentEditModal();
+            renderOpponentTable();
+            updateOpponentDropdowns();
+        }
+
+        function deleteOpponent(opponentId) {
+            const opponent = opponents.find(o => o.id === opponentId);
+            if (!opponent) return;
+            
+            // Check if opponent is used in any events
+            const usedInEvents = events.filter(e => e.opponent === opponent.name);
+            if (usedInEvents.length > 0) {
+                showNotification(`Cannot delete opponent. They're used in ${usedInEvents.length} event(s).`, 'error');
+                return;
+            }
+            
+            if (confirm(`Are you sure you want to delete "${opponent.name}"?`)) {
+                opponents = opponents.filter(o => o.id !== opponentId);
+                saveOpponents();
+                renderOpponentTable();
+                updateOpponentDropdowns();
+                showNotification('Opponent deleted');
+            }
+        }
+
+        function closeOpponentEditModal() {
+            document.getElementById('opponentEditModal').classList.remove('show');
+        }
+
+        // Update dropdown functions
+        function updateCourtDropdowns() {
+            const courtSelect = document.getElementById('courtLocation');
+            courtSelect.innerHTML = '<option value="">Select Court...</option>';
+            
+            courts.forEach(court => {
+                const option = document.createElement('option');
+                option.value = court.id;
+                option.textContent = `${court.location} - ${court.name}`;
+                courtSelect.appendChild(option);
+            });
+        }
+
+        function updateOpponentDropdowns() {
+            const opponentSelect = document.getElementById('opponent');
+            opponentSelect.innerHTML = '<option value="">Select Opponent...</option>';
+            
+            opponents.forEach(opponent => {
+                const option = document.createElement('option');
+                option.value = opponent.id;
+                option.textContent = opponent.name;
+                opponentSelect.appendChild(option);
+            });
+        }
+
+        // Historical update confirmation system
+        let pendingHistoricalUpdate = null;
+
+        function showHistoricalUpdateConfirmation(type, id, oldData, newData) {
+            pendingHistoricalUpdate = { type, id, oldData, newData };
+            
+            const affectedEvents = type === 'court' 
+                ? events.filter(e => e.court === getCourtDisplayName(id))
+                : events.filter(e => e.opponent === oldData.name);
+            
+            const message = `This change will affect ${affectedEvents.length} past event(s). Do you want to update historical records?`;
+            document.getElementById('historicalMessage').textContent = message;
+            document.getElementById('historicalUpdateModal').classList.add('show');
+        }
+
+        function confirmHistoricalUpdate(updateHistorical) {
+            if (!pendingHistoricalUpdate) return;
+            
+            const { type, id, oldData, newData } = pendingHistoricalUpdate;
+            
+            if (type === 'court') {
+                const courtIndex = courts.findIndex(c => c.id == id);
+                if (courtIndex !== -1) {
+                    courts[courtIndex] = { ...oldData, ...newData };
+                    
+                    if (updateHistorical) {
+                        // Update historical events
+                        const oldDisplayName = getCourtDisplayName(id);
+                        const newDisplayName = `${newData.location} - ${newData.name}`;
+                        events.forEach(event => {
+                            if (event.court === oldDisplayName) {
+                                event.court = newDisplayName;
+                            }
+                        });
+                        saveEvents();
+                        showNotification('Court and historical events updated');
+                    } else {
+                        showNotification('Court updated (historical events unchanged)');
+                    }
+                    
+                    saveCourts();
+                    renderCourtTable();
+                    updateCourtDropdowns();
+                }
+            } else if (type === 'opponent') {
+                const opponentIndex = opponents.findIndex(o => o.id == id);
+                if (opponentIndex !== -1) {
+                    opponents[opponentIndex] = { ...oldData, ...newData };
+                    
+                    if (updateHistorical) {
+                        // Update historical events
+                        events.forEach(event => {
+                            if (event.opponent === oldData.name) {
+                                event.opponent = newData.name;
+                            }
+                        });
+                        saveEvents();
+                        showNotification('Opponent and historical events updated');
+                    } else {
+                        showNotification('Opponent updated (historical events unchanged)');
+                    }
+                    
+                    saveOpponents();
+                    renderOpponentTable();
+                    updateOpponentDropdowns();
+                }
+            }
+            
+            closeHistoricalModal();
+        }
+
+        function closeHistoricalModal() {
+            document.getElementById('historicalUpdateModal').classList.remove('show');
+            pendingHistoricalUpdate = null;
         }
 
         // Event management functions
@@ -958,10 +1535,11 @@
                 }, {});
                 
                 const rsvpSummary = `${rsvpCounts.yes || 0}Y/${rsvpCounts.no || 0}N/${rsvpCounts.maybe || 0}M/${rsvpCounts.pending || 0}P`;
+                const homeAwayDisplay = event.homeAway ? `<span style="background: ${event.homeAway === 'Home' ? '#28a745' : '#007bff'}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${event.homeAway === 'Home' ? '🏠' : '✈️'}</span>` : '';
                 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${event.title}</td>
+                    <td>${event.title} ${homeAwayDisplay}</td>
                     <td>${event.type}</td>
                     <td>${new Date(event.date).toLocaleDateString()}</td>
                     <td>${event.time}</td>
@@ -985,6 +1563,7 @@
             document.getElementById('eventTime').value = '18:00';
             document.getElementById('courtLocation').value = '';
             document.getElementById('opponent').value = '';
+            document.getElementById('homeAway').value = '';
             document.getElementById('eventDescription').value = '';
             document.getElementById('saveEventBtn').textContent = 'Create Event';
             document.getElementById('createEventModal').classList.add('show');
@@ -1000,14 +1579,15 @@
             document.getElementById('eventDate').value = event.date;
             document.getElementById('eventTime').value = event.time;
             
-            // Find court ID
-            const courtId = Object.keys(courts).find(id => courts[id] === event.court);
-            document.getElementById('courtLocation').value = courtId || '';
+            // Find court ID by matching display name
+            const court = courts.find(c => `${c.location} - ${c.name}` === event.court);
+            document.getElementById('courtLocation').value = court ? court.id : '';
             
-            // Find opponent ID
-            const opponentId = Object.keys(opponents).find(id => opponents[id] === event.opponent);
-            document.getElementById('opponent').value = opponentId || '';
+            // Find opponent ID by matching name
+            const opponent = opponents.find(o => o.name === event.opponent);
+            document.getElementById('opponent').value = opponent ? opponent.id : '';
             
+            document.getElementById('homeAway').value = event.homeAway || '';
             document.getElementById('eventDescription').value = event.description || '';
             document.getElementById('saveEventBtn').textContent = 'Update Event';
             document.getElementById('createEventModal').classList.add('show');
@@ -1020,6 +1600,7 @@
             const time = document.getElementById('eventTime').value;
             const courtId = document.getElementById('courtLocation').value;
             const opponentId = document.getElementById('opponent').value;
+            const homeAway = document.getElementById('homeAway').value;
             const description = document.getElementById('eventDescription').value;
             
             if (!date) {
@@ -1027,12 +1608,16 @@
                 return;
             }
             
-            const court = courts[courtId] || '';
-            const opponent = opponents[opponentId] || '';
+            // Get court and opponent display names
+            const court = courtId ? getCourtDisplayName(courtId) : '';
+            const opponent = opponentId ? getOpponentDisplayName(opponentId) : '';
             
             let title = '';
             if (type === 'match' && opponent) {
                 title = `vs ${opponent}`;
+                if (homeAway) {
+                    title = `${homeAway === 'Home' ? '🏠' : '✈️'} ${title}`;
+                }
             } else if (type === 'practice') {
                 title = 'Team Practice';
             } else {
@@ -1049,27 +1634,29 @@
                     events[eventIndex].time = time;
                     events[eventIndex].court = court;
                     events[eventIndex].opponent = opponent;
+                    events[eventIndex].homeAway = homeAway;
                     events[eventIndex].description = description;
                     
                     showNotification('Event updated successfully');
                 }
-                saveEvents(); // Save events to localStorage
+                saveEvents();
             } else {
                 // Create new event
                 const newEvent = {
-                    id: Math.max(...events.map(e => e.id)) + 1,
+                    id: Math.max(...events.map(e => e.id), 0) + 1,
                     type,
                     title,
                     date,
                     time,
                     court,
                     opponent,
+                    homeAway,
                     description,
                     rsvps: {}
                 };
                 
                 events.push(newEvent);
-                saveEvents(); // Save events to localStorage
+                saveEvents();
                 showNotification('Event created successfully');
             }
             
@@ -1093,7 +1680,7 @@
             
             if (confirm(`Are you sure you want to delete "${event.title}"?`)) {
                 events = events.filter(e => e.id !== eventId);
-                saveEvents(); // Save events to localStorage
+                saveEvents();
                 renderEventTable();
                 renderCalendar();
                 updateStats();
@@ -1252,12 +1839,20 @@
                 `;
             }
             
+            const homeAwayBanner = event.homeAway ? `
+                <div style="background: ${event.homeAway === 'Home' ? '#28a745' : '#007bff'}; color: white; padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 15px; font-weight: bold; font-size: 16px;">
+                    ${event.homeAway === 'Home' ? '🏠 HOME GAME' : '✈️ AWAY GAME'}
+                </div>
+            ` : '';
+            
             document.getElementById('eventContent').innerHTML = `
+                ${homeAwayBanner}
                 <p><strong>Type:</strong> ${event.type}</p>
                 <p><strong>Date:</strong> ${new Date(event.date).toLocaleDateString()}</p>
                 <p><strong>Time:</strong> ${event.time}</p>
                 <p><strong>Location:</strong> ${event.court || 'TBD'}</p>
                 ${event.opponent ? `<p><strong>Opponent:</strong> ${event.opponent}</p>` : ''}
+                ${event.homeAway ? `<p><strong>Game Type:</strong> ${event.homeAway === 'Home' ? '🏠 Home' : '✈️ Away'}</p>` : ''}
                 <p><strong>Description:</strong> ${event.description || 'None'}</p>
                 
                 ${rsvpSection}
@@ -1277,7 +1872,7 @@
             const event = events.find(e => e.id === eventId);
             if (event) {
                 event.rsvps[currentUser.id] = status;
-                saveEvents(); // Save events to localStorage
+                saveEvents();
                 showNotification(`RSVP updated: ${status}`);
                 updateStats();
                 updateAdminStats();
@@ -1290,7 +1885,7 @@
         function deleteEvent(eventId) {
             if (confirm('Delete this event?')) {
                 events = events.filter(e => e.id !== eventId);
-                saveEvents(); // Save events to localStorage
+                saveEvents();
                 closeModal();
                 renderCalendar();
                 updateStats();
@@ -1318,9 +1913,10 @@
             
             container.innerHTML = sortedEvents.map(event => {
                 const userRSVP = event.rsvps[currentUser.id] || 'pending';
+                const homeAwayBadge = event.homeAway ? `<span style="background: ${event.homeAway === 'Home' ? '#28a745' : '#007bff'}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 8px;">${event.homeAway === 'Home' ? '🏠 HOME' : '✈️ AWAY'}</span>` : '';
                 return `
                     <div class="event-item" onclick="showEventDetails(${JSON.stringify(event).replace(/"/g, '&quot;')})">
-                        <div style="font-weight: bold;">${event.title}</div>
+                        <div style="font-weight: bold;">${event.title}${homeAwayBadge}</div>
                         <div>${new Date(event.date).toLocaleDateString()} at ${event.time}</div>
                         <div>RSVP: ${userRSVP}</div>
                     </div>
@@ -1349,7 +1945,7 @@
             const userIndex = users.findIndex(u => u.id === currentUser.id);
             if (userIndex !== -1) {
                 users[userIndex] = currentUser;
-                saveUsers(); // Save users to localStorage
+                saveUsers();
             }
             
             localStorage.setItem('tennisUser', JSON.stringify(currentUser));
@@ -1386,9 +1982,49 @@
             document.getElementById('teamMemberCount').textContent = users.length;
         }
 
+        // Data migration function to preserve existing accounts
+        function migrateExistingData() {
+            // Check if there are any existing accounts in old format
+            const oldUsers = localStorage.getItem('users');
+            const oldEvents = localStorage.getItem('events');
+            
+            if (oldUsers && !localStorage.getItem('tennisUsers')) {
+                try {
+                    const parsedUsers = JSON.parse(oldUsers);
+                    if (Array.isArray(parsedUsers) && parsedUsers.length > 0) {
+                        localStorage.setItem('tennisUsers', oldUsers);
+                    }
+                } catch (e) {
+                    console.log('Error migrating user data:', e);
+                }
+            }
+            
+            if (oldEvents && !localStorage.getItem('tennisEvents')) {
+                try {
+                    const parsedEvents = JSON.parse(oldEvents);
+                    if (Array.isArray(parsedEvents)) {
+                        localStorage.setItem('tennisEvents', oldEvents);
+                    }
+                } catch (e) {
+                    console.log('Error migrating event data:', e);
+                }
+            }
+        }
+
         // Initialize app
         function init() {
-            console.log('App initializing...');
+            // First, try to migrate any existing data
+            migrateExistingData();
+            
+            // Reload users and events after potential migration
+            users = loadUsers();
+            events = loadEvents();
+            courts = loadCourts();
+            opponents = loadOpponents();
+            
+            // Update dropdowns with current data
+            updateCourtDropdowns();
+            updateOpponentDropdowns();
             
             // Check for saved user
             const savedUser = localStorage.getItem('tennisUser');
@@ -1414,19 +2050,14 @@
                     updateStats();
                     updateAdminStats();
                 } catch (e) {
-                    console.log('Error loading saved user');
                     show('loginScreen');
                 }
             } else {
                 show('loginScreen');
             }
-            
-            console.log('App initialized');
         }
 
         // Start the app
-        console.log('Script loaded');
-        
         // Initialize when DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', init);
