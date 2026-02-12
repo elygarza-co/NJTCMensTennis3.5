@@ -310,21 +310,81 @@
       gap: 10px;
       margin-top: 10px;
     }
-    .player-checkbox {
+    .player-item {
       display: flex;
-      align-items: center;
+      flex-direction: column;
       gap: 5px;
-      padding: 5px 10px;
+      padding: 10px;
       border: 1px solid #ddd;
       border-radius: 5px;
       background: white;
-      cursor: pointer;
+      min-width: 200px;
     }
-    .player-checkbox:hover {
+    .player-item:hover {
       background: #e9ecef;
     }
-    .player-checkbox input[type="checkbox"] {
+    .player-header {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: bold;
+    }
+    .player-header input[type="checkbox"] {
       margin: 0;
+    }
+    .position-select {
+      width: 100%;
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+    .position-select:disabled {
+      background: #f8f9fa;
+      color: #6c757d;
+    }
+    
+    /* Position Badge Styles */
+    .position-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: bold;
+      color: white;
+      margin-left: 5px;
+    }
+    .position-badge.singles1 { background: #dc3545; }
+    .position-badge.singles2 { background: #fd7e14; }
+    .position-badge.doubles1 { background: #198754; }
+    .position-badge.doubles2 { background: #0d6efd; }
+    .position-badge.doubles3 { background: #6f42c1; }
+    
+    /* User Profile Styles */
+    .profile-section {
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #f8f9fa;
+    }
+    .profile-section h4 {
+      margin-top: 0;
+      color: #667eea;
+    }
+    .assignment-item {
+      padding: 10px;
+      margin: 5px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background: white;
+    }
+    .assignment-item.upcoming {
+      border-left: 4px solid #28a745;
+    }
+    .assignment-item.past {
+      opacity: 0.7;
+      border-left: 4px solid #6c757d;
     }
     
     /* Role Badge */
@@ -403,6 +463,7 @@
 </div>
 <span>Admin</span>
 </div>
+<button class="btn btn-info" onclick="showUserProfile()" style="margin-right: 5px;">My Profile</button>
 <button class="btn btn-secondary" onclick="handleLogout()">Logout</button>
 </div>
 </div>
@@ -450,7 +511,7 @@
 <table>
 <thead>
 <tr>
-<th>Title</th><th>Date</th><th>Time</th><th>Location</th><th>Type</th><th>Opponent</th><th>Assigned Players</th><th>Actions</th>
+<th>Title</th><th>Date</th><th>Time</th><th>Location</th><th>Type</th><th>Opponent</th><th>Player Assignments</th><th>Actions</th>
 </tr>
 </thead>
 <tbody id="adminEventTableBody"></tbody>
@@ -503,9 +564,9 @@
 <textarea class="form-control" id="eventDescription" placeholder="Description"></textarea>
 <!-- Player Assignment Section -->
 <div class="player-assignment">
-<h4>Assign Players</h4>
+<h4>Assign Players with Positions</h4>
 <div class="player-list" id="playerAssignmentList">
-<!-- Player checkboxes will be generated here -->
+<!-- Player assignment items will be generated here -->
 </div>
 </div>
 <button class="btn btn-success" onclick="saveEvent()">Save</button>
@@ -547,6 +608,26 @@
 <button class="btn btn-success" onclick="saveLocation()">Save</button>
 <button class="btn btn-secondary" onclick="closeLocationModal()">Cancel</button>
 <input id="locationId" type="hidden"/>
+</div>
+</div>
+<!-- User Profile Modal -->
+<div class="modal" id="profileModal">
+<div class="modal-content" style="max-width: 700px;">
+<h3>🎾 My Tennis Profile</h3>
+<div class="profile-section">
+<h4>Personal Information</h4>
+<p><strong>Name:</strong> <span id="profileName"></span></p>
+<p><strong>Email:</strong> <span id="profileEmail"></span></p>
+<p><strong>Role:</strong> <span id="profileRole"></span></p>
+<p><strong>Member Since:</strong> <span id="profileMemberSince"></span></p>
+</div>
+<div class="profile-section">
+<h4>My Match Assignments</h4>
+<div id="profileAssignments">
+<!-- Assignments will be loaded here -->
+</div>
+</div>
+<button class="btn btn-secondary" onclick="closeProfileModal()">Close</button>
 </div>
 </div>
 <!-- Firebase SDKs -->
@@ -621,6 +702,13 @@
 
     // View Toggle Functions
     function toggleAdminView() {
+      // Security check: Only allow admin users to toggle
+      if (!userProfile || userProfile.role !== 'admin') {
+        console.error('Access denied: User is not an admin');
+        alert('Access denied: You do not have admin privileges.');
+        return;
+      }
+      
       isAdminView = !isAdminView;
       const toggleSwitch = document.getElementById('toggleSwitch');
       const appTitle = document.getElementById('appTitle');
@@ -836,14 +924,20 @@
       }
       
       console.log('Showing user interface for:', userProfile.role);
+      console.log('Full user profile:', userProfile);
       
       document.getElementById('userEmailDisplay').textContent = userProfile.email;
       
+      // Clear any existing admin classes first
+      document.getElementById('userRoleBadge').classList.remove('admin');
+      
       if (userProfile.role === 'admin') {
+        console.log('Setting up admin interface');
         document.getElementById('userRoleBadge').textContent = 'Admin';
         document.getElementById('userRoleBadge').classList.add('admin');
         document.getElementById('adminToggle').classList.remove('hidden');
       } else {
+        console.log('Setting up user interface');
         document.getElementById('userRoleBadge').textContent = 'User';
         document.getElementById('adminToggle').classList.add('hidden');
       }
@@ -871,8 +965,32 @@
 
     // Helper function to check if user is assigned to event
     function isUserAssignedToEvent(event) {
-      if (!event.assignedPlayers || !currentUser) return false;
-      return event.assignedPlayers.includes(currentUser.uid);
+      if (!event.playerAssignments || !currentUser) return false;
+      return event.playerAssignments.some(assignment => assignment.playerId === currentUser.uid);
+    }
+    
+    // Helper function to get user's position for an event
+    function getUserPositionForEvent(event) {
+      if (!event.playerAssignments || !currentUser) return null;
+      const assignment = event.playerAssignments.find(assignment => assignment.playerId === currentUser.uid);
+      return assignment ? assignment.position : null;
+    }
+    
+    // Helper function to get position display name
+    function getPositionDisplayName(position) {
+      const positions = {
+        'singles1': '#1 Singles',
+        'singles2': '#2 Singles', 
+        'doubles1': '#1 Doubles',
+        'doubles2': '#2 Doubles',
+        'doubles3': '#3 Doubles'
+      };
+      return positions[position] || position;
+    }
+    
+    // Helper function to get position badge class
+    function getPositionBadgeClass(position) {
+      return `position-badge ${position}`;
     }
 
     // Calendar Functions
@@ -935,7 +1053,9 @@
             eventElement.classList.add('not-assigned');
           }
           
-          eventElement.textContent = `${event.time || ''} ${event.title || 'Event'}`;
+          const userPosition = getUserPositionForEvent(event);
+          const positionText = userPosition ? ` (${getPositionDisplayName(userPosition)})` : '';
+          eventElement.textContent = `${event.time || ''} ${event.title || 'Event'}${positionText}`;
           eventElement.onclick = (e) => showEventPopup(e, event);
           dayElement.appendChild(eventElement);
         });
@@ -960,12 +1080,15 @@
         const location = locations.find(loc => loc.id === event.locationId);
         const locationName = location ? location.name : event.location || 'TBD';
         
+        const userPosition = getUserPositionForEvent(event);
+        const positionDisplay = userPosition ? `<span class="${getPositionBadgeClass(userPosition)}">${getPositionDisplayName(userPosition)}</span>` : '';
+        
         const eventItem = document.createElement('div');
         eventItem.className = `event-list-item ${isAssigned ? 'assigned' : 'not-assigned'}`;
         
         eventItem.innerHTML = `
           <div class="event-header">
-            <div class="event-title">${event.title || 'Event'}</div>
+            <div class="event-title">${event.title || 'Event'} ${positionDisplay}</div>
             <div class="event-type-badge ${event.type || 'practice'}">${(event.type || 'practice').charAt(0).toUpperCase() + (event.type || 'practice').slice(1)}</div>
           </div>
           <div class="event-details">
@@ -973,10 +1096,11 @@
             <div><strong>Time:</strong> ${event.time || 'TBD'}</div>
             <div><strong>Location:</strong> ${locationName}</div>
             ${event.opponent ? `<div><strong>Opponent:</strong> ${event.opponent}</div>` : ''}
+            ${userPosition ? `<div><strong>My Position:</strong> ${getPositionDisplayName(userPosition)}</div>` : ''}
           </div>
           ${event.description ? `<div style="margin-top: 10px; color: #666;"><strong>Notes:</strong> ${event.description}</div>` : ''}
           <div class="assignment-status ${isAssigned ? 'assigned' : 'not-assigned'}">
-            ${isAssigned ? '✓ You are assigned to this event' : '○ You are not assigned to this event'}
+            ${isAssigned ? `✓ You are assigned to this event${userPosition ? ` as ${getPositionDisplayName(userPosition)}` : ''}` : '○ You are not assigned to this event'}
           </div>
         `;
         
@@ -1000,6 +1124,7 @@
       const location = locations.find(loc => loc.id === event.locationId);
       const locationName = location ? location.name : event.location || 'TBD';
       const isAssigned = isUserAssignedToEvent(event);
+      const userPosition = getUserPositionForEvent(event);
       
       content.innerHTML = `
         <h4>${event.title}</h4>
@@ -1008,9 +1133,10 @@
         <p><strong>Location:</strong> ${locationName}</p>
         <p><strong>Type:</strong> ${event.type ? event.type.charAt(0).toUpperCase() + event.type.slice(1) : 'Practice'}</p>
         ${event.opponent ? `<p><strong>Opponent:</strong> ${event.opponent}</p>` : ''}
+        ${userPosition ? `<p><strong>My Position:</strong> <span class="${getPositionBadgeClass(userPosition)}">${getPositionDisplayName(userPosition)}</span></p>` : ''}
         ${event.description ? `<p><strong>Notes:</strong> ${event.description}</p>` : ''}
         <div style="margin-top: 10px; padding: 8px; border-radius: 5px; font-weight: bold; text-align: center; ${isAssigned ? 'background: #d4edda; color: #155724;' : 'background: #f8d7da; color: #721c24;'}">
-          ${isAssigned ? '✓ You are assigned to this event' : '○ You are not assigned to this event'}
+          ${isAssigned ? `✓ You are assigned to this event${userPosition ? ` as ${getPositionDisplayName(userPosition)}` : ''}` : '○ You are not assigned to this event'}
         </div>
       `;
       
@@ -1101,6 +1227,13 @@
     }
     
     function showEventModal(event = null) {
+      // Security check: Only allow admin users to access event modal
+      if (!userProfile || userProfile.role !== 'admin') {
+        console.error('Access denied: User is not an admin');
+        alert('Access denied: You do not have admin privileges.');
+        return;
+      }
+      
       // Populate location dropdown
       const locationSelect = document.getElementById('eventLocation');
       locationSelect.innerHTML = '<option value="">Select Location</option>';
@@ -1111,21 +1244,22 @@
         locationSelect.appendChild(option);
       });
       
-      // Populate player assignment list
+      // Populate player assignment list with positions
       const playerList = document.getElementById('playerAssignmentList');
       playerList.innerHTML = '';
       users.filter(user => user.role === 'user').forEach(user => {
         const playerDiv = document.createElement('div');
-        playerDiv.className = 'player-checkbox';
+        playerDiv.className = 'player-item';
+        
+        // Player header with checkbox and name
+        const playerHeader = document.createElement('div');
+        playerHeader.className = 'player-header';
         
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.value = user.id;
         checkbox.id = `player_${user.id}`;
-        
-        if (event && event.assignedPlayers && event.assignedPlayers.includes(user.id)) {
-          checkbox.checked = true;
-        }
+        checkbox.onchange = () => togglePositionSelect(user.id);
         
         const label = document.createElement('label');
         label.htmlFor = `player_${user.id}`;
@@ -1133,8 +1267,43 @@
         label.style.cursor = 'pointer';
         label.style.margin = '0';
         
-        playerDiv.appendChild(checkbox);
-        playerDiv.appendChild(label);
+        playerHeader.appendChild(checkbox);
+        playerHeader.appendChild(label);
+        
+        // Position select dropdown
+        const positionSelect = document.createElement('select');
+        positionSelect.className = 'position-select';
+        positionSelect.id = `position_${user.id}`;
+        positionSelect.disabled = true;
+        
+        const positions = [
+          { value: '', text: 'Select Position' },
+          { value: 'singles1', text: '#1 Singles' },
+          { value: 'singles2', text: '#2 Singles' },
+          { value: 'doubles1', text: '#1 Doubles' },
+          { value: 'doubles2', text: '#2 Doubles' },
+          { value: 'doubles3', text: '#3 Doubles' }
+        ];
+        
+        positions.forEach(pos => {
+          const option = document.createElement('option');
+          option.value = pos.value;
+          option.textContent = pos.text;
+          positionSelect.appendChild(option);
+        });
+        
+        // Check if user is assigned and set values
+        if (event && event.playerAssignments) {
+          const assignment = event.playerAssignments.find(a => a.playerId === user.id);
+          if (assignment) {
+            checkbox.checked = true;
+            positionSelect.disabled = false;
+            positionSelect.value = assignment.position || '';
+          }
+        }
+        
+        playerDiv.appendChild(playerHeader);
+        playerDiv.appendChild(positionSelect);
         playerList.appendChild(playerDiv);
       });
       
@@ -1166,7 +1335,26 @@
       document.getElementById('eventModal').classList.remove('show');
     }
     
+    function togglePositionSelect(playerId) {
+      const checkbox = document.getElementById(`player_${playerId}`);
+      const positionSelect = document.getElementById(`position_${playerId}`);
+      
+      if (checkbox.checked) {
+        positionSelect.disabled = false;
+      } else {
+        positionSelect.disabled = true;
+        positionSelect.value = '';
+      }
+    }
+    
     async function saveEvent() {
+      // Security check: Only allow admin users to save events
+      if (!userProfile || userProfile.role !== 'admin') {
+        console.error('Access denied: User is not an admin');
+        alert('Access denied: You do not have admin privileges.');
+        return;
+      }
+      
       const title = document.getElementById('eventTitle').value;
       const date = document.getElementById('eventDate').value;
       const time = document.getElementById('eventTime').value;
@@ -1176,14 +1364,23 @@
       const description = document.getElementById('eventDescription').value;
       const id = document.getElementById('eventId').value;
       
-      // Get assigned players
-      const assignedPlayers = [];
+      // Get player assignments with positions
+      const playerAssignments = [];
       document.querySelectorAll('#playerAssignmentList input[type="checkbox"]:checked').forEach(checkbox => {
-        assignedPlayers.push(checkbox.value);
+        const playerId = checkbox.value;
+        const positionSelect = document.getElementById(`position_${playerId}`);
+        const position = positionSelect.value;
+        
+        if (position) {
+          playerAssignments.push({
+            playerId: playerId,
+            position: position
+          });
+        }
       });
       
       const eventData = { 
-        title, date, time, locationId, type, opponent, description, assignedPlayers,
+        title, date, time, locationId, type, opponent, description, playerAssignments,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       
@@ -1213,6 +1410,13 @@
     }
     
     async function removeEvent(id) {
+      // Security check: Only allow admin users to delete events
+      if (!userProfile || userProfile.role !== 'admin') {
+        console.error('Access denied: User is not an admin');
+        alert('Access denied: You do not have admin privileges.');
+        return;
+      }
+      
       if (confirm('Delete this event?')) {
         try {
           await db.collection('events').doc(id).delete();
@@ -1237,13 +1441,14 @@
         const location = locations.find(loc => loc.id === event.locationId);
         const locationName = location ? location.name : event.location || 'TBD';
         
-        // Get assigned player names
-        const assignedPlayerNames = [];
-        if (event.assignedPlayers) {
-          event.assignedPlayers.forEach(playerId => {
-            const user = users.find(u => u.id === playerId);
+        // Get player assignments with positions
+        const assignmentDisplay = [];
+        if (event.playerAssignments) {
+          event.playerAssignments.forEach(assignment => {
+            const user = users.find(u => u.id === assignment.playerId);
             if (user) {
-              assignedPlayerNames.push(`${user.firstName} ${user.lastName}`);
+              const positionName = getPositionDisplayName(assignment.position);
+              assignmentDisplay.push(`${user.firstName} ${user.lastName} <span class="${getPositionBadgeClass(assignment.position)}">${positionName}</span>`);
             }
           });
         }
@@ -1256,7 +1461,7 @@
           <td>${locationName}</td>
           <td><span class="calendar-event ${event.type || 'practice'}" style="padding: 3px 8px; border-radius: 3px;">${(event.type || 'practice').charAt(0).toUpperCase() + (event.type || 'practice').slice(1)}</span></td>
           <td>${event.opponent || ''}</td>
-          <td>${assignedPlayerNames.join(', ') || 'None'}</td>
+          <td>${assignmentDisplay.join('<br>') || 'None'}</td>
           <td>
             <button class="btn btn-warning" onclick="editEvent('${event.id}')">Edit</button>
             <button class="btn btn-danger" onclick="removeEvent('${event.id}')">Delete</button>
@@ -1281,6 +1486,13 @@
     }
     
     function showUserModal(user = null) {
+      // Security check: Only allow admin users to access user modal
+      if (!userProfile || userProfile.role !== 'admin') {
+        console.error('Access denied: User is not an admin');
+        alert('Access denied: You do not have admin privileges.');
+        return;
+      }
+      
       document.getElementById('userModal').classList.add('show');
       if (user) {
         document.getElementById('userModalTitle').textContent = 'Edit User';
@@ -1308,6 +1520,13 @@
     }
     
     async function saveUser() {
+      // Security check: Only allow admin users to save users
+      if (!userProfile || userProfile.role !== 'admin') {
+        console.error('Access denied: User is not an admin');
+        alert('Access denied: You do not have admin privileges.');
+        return;
+      }
+      
       const firstName = document.getElementById('userFirstName').value;
       const lastName = document.getElementById('userLastName').value;
       const email = document.getElementById('userEmail').value;
@@ -1346,6 +1565,13 @@
     }
     
     async function removeUser(id) {
+      // Security check: Only allow admin users to delete users
+      if (!userProfile || userProfile.role !== 'admin') {
+        console.error('Access denied: User is not an admin');
+        alert('Access denied: You do not have admin privileges.');
+        return;
+      }
+      
       if (confirm('Delete this user?')) {
         try {
           await db.collection('users').doc(id).delete();
@@ -1395,6 +1621,13 @@
     }
     
     function showLocationModal(location = null) {
+      // Security check: Only allow admin users to access location modal
+      if (!userProfile || userProfile.role !== 'admin') {
+        console.error('Access denied: User is not an admin');
+        alert('Access denied: You do not have admin privileges.');
+        return;
+      }
+      
       document.getElementById('locationModal').classList.add('show');
       if (location) {
         document.getElementById('locationModalTitle').textContent = 'Edit Location';
@@ -1418,6 +1651,13 @@
     }
     
     async function saveLocation() {
+      // Security check: Only allow admin users to save locations
+      if (!userProfile || userProfile.role !== 'admin') {
+        console.error('Access denied: User is not an admin');
+        alert('Access denied: You do not have admin privileges.');
+        return;
+      }
+      
       const name = document.getElementById('locationName').value;
       const address = document.getElementById('locationAddress').value;
       const type = document.getElementById('locationType').value;
@@ -1451,6 +1691,13 @@
     }
     
     async function removeLocation(id) {
+      // Security check: Only allow admin users to delete locations
+      if (!userProfile || userProfile.role !== 'admin') {
+        console.error('Access denied: User is not an admin');
+        alert('Access denied: You do not have admin privileges.');
+        return;
+      }
+      
       if (confirm('Delete this location?')) {
         try {
           await db.collection('locations').doc(id).delete();
@@ -1499,6 +1746,101 @@
       }
     });
     
+    // User Profile Functions
+    function showUserProfile() {
+      if (!userProfile || !currentUser) {
+        console.error('No user profile available');
+        return;
+      }
+      
+      // Populate profile information
+      document.getElementById('profileName').textContent = `${userProfile.firstName} ${userProfile.lastName}`;
+      document.getElementById('profileEmail').textContent = userProfile.email;
+      document.getElementById('profileRole').textContent = userProfile.role === 'admin' ? 'Administrator' : 'Player';
+      
+      const memberSince = userProfile.createdAt ? 
+        new Date(userProfile.createdAt.seconds * 1000).toLocaleDateString() : 'N/A';
+      document.getElementById('profileMemberSince').textContent = memberSince;
+      
+      // Load user's assignments
+      loadUserAssignments();
+      
+      document.getElementById('profileModal').classList.add('show');
+    }
+    
+    function closeProfileModal() {
+      document.getElementById('profileModal').classList.remove('show');
+    }
+    
+    async function loadUserAssignments() {
+      const assignmentsContainer = document.getElementById('profileAssignments');
+      assignmentsContainer.innerHTML = '<p>Loading assignments...</p>';
+      
+      try {
+        // Get all events where user is assigned
+        const userAssignments = events.filter(event => 
+          event.playerAssignments && 
+          event.playerAssignments.some(assignment => assignment.playerId === currentUser.uid)
+        );
+        
+        if (userAssignments.length === 0) {
+          assignmentsContainer.innerHTML = '<p style="color: #666; text-align: center;">No match assignments yet.</p>';
+          return;
+        }
+        
+        // Sort by date
+        userAssignments.sort((a, b) => {
+          if (!a.date) return 1;
+          if (!b.date) return -1;
+          return new Date(a.date) - new Date(b.date);
+        });
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        assignmentsContainer.innerHTML = '';
+        
+        userAssignments.forEach(event => {
+          const eventDate = event.date ? new Date(event.date) : null;
+          const isUpcoming = eventDate && eventDate >= today;
+          
+          const userAssignment = event.playerAssignments.find(assignment => assignment.playerId === currentUser.uid);
+          const position = userAssignment ? userAssignment.position : '';
+          const positionDisplay = position ? getPositionDisplayName(position) : 'Position TBD';
+          
+          const location = locations.find(loc => loc.id === event.locationId);
+          const locationName = location ? location.name : event.location || 'TBD';
+          
+          const assignmentDiv = document.createElement('div');
+          assignmentDiv.className = `assignment-item ${isUpcoming ? 'upcoming' : 'past'}`;
+          
+          assignmentDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h5 style="margin: 0; color: #333;">${event.title || 'Event'}</h5>
+              <span class="${getPositionBadgeClass(position)}">${positionDisplay}</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; font-size: 14px; color: #666;">
+              <div><strong>Date:</strong> ${event.date || 'TBD'}</div>
+              <div><strong>Time:</strong> ${event.time || 'TBD'}</div>
+              <div><strong>Location:</strong> ${locationName}</div>
+              <div><strong>Type:</strong> ${event.type ? event.type.charAt(0).toUpperCase() + event.type.slice(1) : 'Practice'}</div>
+              ${event.opponent ? `<div><strong>Opponent:</strong> ${event.opponent}</div>` : ''}
+            </div>
+            ${event.description ? `<div style="margin-top: 8px; font-size: 13px; color: #666;"><strong>Notes:</strong> ${event.description}</div>` : ''}
+            <div style="margin-top: 8px; font-size: 12px; color: ${isUpcoming ? '#28a745' : '#6c757d'};">
+              ${isUpcoming ? '📅 Upcoming Match' : '✅ Past Match'}
+            </div>
+          `;
+          
+          assignmentsContainer.appendChild(assignmentDiv);
+        });
+        
+      } catch (error) {
+        console.error('Error loading user assignments:', error);
+        assignmentsContainer.innerHTML = '<p style="color: #dc3545;">Error loading assignments.</p>';
+      }
+    }
+
     // Add Enter key support for login
     document.addEventListener('DOMContentLoaded', function() {
       console.log('DOM loaded, setting up event listeners');
