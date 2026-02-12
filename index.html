@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>My Tennis Scheduler - Team Management</title>
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>My Tennis Scheduler - Team Management</title>
+<style>
     body {
       font-family: Arial, sans-serif;
       background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%),
@@ -12,13 +13,17 @@
       min-height: 100vh;
       background-attachment: fixed;
     }
-    .container { max-width: 1000px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 30px; }
-    .hidden { display: none; }
+    .container { max-width: 1200px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 30px; }
+    .hidden { display: none !important; }
     .btn { background: #667eea; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin: 5px; }
     .btn-danger { background: #dc3545; }
     .btn-secondary { background: #6c757d; }
-    .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; }
+    .btn-success { background: #28a745; }
+    .btn-warning { background: #ffc107; color: #212529; }
+    .btn-info { background: #17a2b8; }
+    .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; box-sizing: border-box; }
     .notification { margin-top: 15px; color: #dc3545; font-weight: bold; }
+    .success { color: #28a745; }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
     th { background: #f8f9fa; font-weight: bold; }
@@ -40,13 +45,516 @@
       width: 100%;
     }
     .login-card h2 { color: #667eea; }
+    
+    /* View Toggle */
+    .view-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: 20px;
+    }
+    .toggle-switch {
+      position: relative;
+      width: 60px;
+      height: 30px;
+      background: #ccc;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .toggle-switch.admin {
+      background: #667eea;
+    }
+    .toggle-slider {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 24px;
+      height: 24px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
+    }
+    .toggle-switch.admin .toggle-slider {
+      transform: translateX(30px);
+    }
+    
+    /* Calendar/List View Toggle */
+    .view-selector {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .view-btn {
+      background: #f8f9fa;
+      color: #495057;
+      border: 1px solid #dee2e6;
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .view-btn.active {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+    
+    /* Calendar Styles */
+    .calendar-container {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .calendar-nav {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1px;
+      background: #ddd;
+      border: 1px solid #ddd;
+    }
+    .calendar-day-header {
+      background: #f8f9fa;
+      padding: 10px;
+      text-align: center;
+      font-weight: bold;
+      border: 1px solid #ddd;
+    }
+    .calendar-day {
+      background: white;
+      min-height: 100px;
+      padding: 5px;
+      border: 1px solid #ddd;
+      position: relative;
+    }
+    .calendar-day.other-month {
+      background: #f8f9fa;
+      color: #6c757d;
+    }
+    .calendar-day.today {
+      background: #e3f2fd;
+    }
+    .calendar-event {
+      background: #667eea;
+      color: white;
+      padding: 2px 5px;
+      margin: 1px 0;
+      border-radius: 3px;
+      font-size: 11px;
+      cursor: pointer;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .calendar-event.home {
+      background: #28a745;
+    }
+    .calendar-event.away {
+      background: #dc3545;
+    }
+    .calendar-event.assigned {
+      border: 3px solid #ffc107;
+      font-weight: bold;
+    }
+    .calendar-event.not-assigned {
+      opacity: 0.6;
+    }
+    
+    /* List View Styles */
+    .list-container {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .event-list-item {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 10px;
+      transition: all 0.3s;
+    }
+    .event-list-item.assigned {
+      border-color: #ffc107;
+      background: #fff8e1;
+      border-width: 3px;
+    }
+    .event-list-item.not-assigned {
+      opacity: 0.7;
+      background: #f8f9fa;
+    }
+    .event-list-item:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .event-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .event-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+    .event-type-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+    }
+    .event-type-badge.home { background: #28a745; }
+    .event-type-badge.away { background: #dc3545; }
+    .event-type-badge.practice { background: #667eea; }
+    .event-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      color: #666;
+    }
+    .assignment-status {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 5px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .assignment-status.assigned {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .assignment-status.not-assigned {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    /* Admin Panel Styles */
+    .admin-tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #ddd;
+    }
+    .admin-tab {
+      background: none;
+      border: none;
+      padding: 15px 25px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      font-size: 16px;
+    }
+    .admin-tab.active {
+      border-bottom-color: #667eea;
+      color: #667eea;
+      font-weight: bold;
+    }
+    .admin-content {
+      display: none;
+    }
+    .admin-content.active {
+      display: block;
+    }
+    
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+    }
+    .modal.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    
+    /* Player Assignment Styles */
+    .player-assignment {
+      margin-top: 15px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background: #f8f9fa;
+    }
+    .player-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .player-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background: white;
+      cursor: pointer;
+    }
+    .player-checkbox:hover {
+      background: #e9ecef;
+    }
+    .player-checkbox input[type="checkbox"] {
+      margin: 0;
+    }
+    
+    /* Role Badge */
+    .role-badge {
+      background: #ffc107;
+      color: #212529;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    .role-badge.admin {
+      background: #dc3545;
+      color: white;
+    }
+    
+    /* Event Detail Popup */
+    .event-popup {
+      position: absolute;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      z-index: 100;
+      min-width: 200px;
+      display: none;
+    }
+    
+    .show { display: block !important; }
+    .visible { visibility: visible !important; opacity: 1 !important; }
   </style>
-  <!-- Firebase SDKs (CORRECT FORMAT) -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-  <script>
-    // Your web app's Firebase configuration
+</head>
+<body>
+<!-- Login Screen -->
+<div class="login-container" id="loginScreen">
+<div class="login-card">
+<h2 style="text-align: center; margin-bottom: 30px;">🎾 My Tennis Scheduler</h2>
+<input class="form-control" id="email" placeholder="Email" type="email"/>
+<input class="form-control" id="password" placeholder="Password" type="password"/>
+<button class="btn" onclick="login()">Sign In</button>
+<button class="btn btn-secondary" onclick="showRegister()">Create Account</button>
+<div class="notification" id="loginNotification"></div>
+</div>
+</div>
+<!-- Register Screen -->
+<div class="login-container hidden" id="registerScreen">
+<div class="login-card">
+<h2 style="text-align: center; margin-bottom: 30px;">Join the Team</h2>
+<input class="form-control" id="regFirstName" placeholder="First Name" type="text"/>
+<input class="form-control" id="regLastName" placeholder="Last Name" type="text"/>
+<input class="form-control" id="regEmail" placeholder="Email" type="email"/>
+<input class="form-control" id="regPassword" placeholder="Password" type="password"/>
+<label style="margin-bottom: 10px;">
+<input id="regIsAdmin" style="margin-right: 5px;" type="checkbox"/>
+        Register as Admin
+      </label>
+<button class="btn" onclick="register()">Create Account</button>
+<button class="btn btn-secondary" onclick="showLogin()">Back to Login</button>
+<div class="notification" id="registerNotification"></div>
+</div>
+</div>
+<!-- Main App (User/Admin Toggle) -->
+<div class="container hidden" id="mainApp">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<h2 id="appTitle">🎾 My Tennis Schedule</h2>
+<div style="display: flex; align-items: center;">
+<span id="userEmailDisplay" style="margin-right: 15px; color: #667eea;"></span>
+<span class="role-badge" id="userRoleBadge">User</span>
+<!-- Admin Toggle (only visible for admins) -->
+<div class="view-toggle hidden" id="adminToggle">
+<span>User</span>
+<div class="toggle-switch" id="toggleSwitch" onclick="toggleAdminView()">
+<div class="toggle-slider"></div>
+</div>
+<span>Admin</span>
+</div>
+<button class="btn btn-secondary" onclick="logout()">Logout</button>
+</div>
+</div>
+<!-- User Interface -->
+<div id="userInterface">
+<!-- View Selector -->
+<div class="view-selector">
+<button class="view-btn active" id="calendarViewBtn" onclick="switchView('calendar')">Calendar View</button>
+<button class="view-btn" id="listViewBtn" onclick="switchView('list')">List View</button>
+</div>
+<!-- Calendar View -->
+<div class="calendar-container" id="calendarView">
+<div class="calendar-header">
+<button class="calendar-nav" onclick="changeMonth(-1)">‹ Previous</button>
+<h3 id="calendarTitle">Loading...</h3>
+<button class="calendar-nav" onclick="changeMonth(1)">Next ›</button>
+</div>
+<div class="calendar-grid" id="calendarGrid">
+<!-- Calendar will be generated here -->
+</div>
+</div>
+<!-- List View -->
+<div class="list-container hidden" id="listView">
+<h3>Upcoming Events</h3>
+<div id="eventList">
+<!-- Event list will be generated here -->
+</div>
+</div>
+<!-- Event Detail Popup -->
+<div class="event-popup" id="eventPopup">
+<div id="eventPopupContent"></div>
+</div>
+</div>
+<!-- Admin Interface -->
+<div class="hidden" id="adminInterface">
+<div class="admin-tabs">
+<button class="admin-tab active" onclick="showAdminTab('events')">Events</button>
+<button class="admin-tab" onclick="showAdminTab('users')">Users</button>
+<button class="admin-tab" onclick="showAdminTab('locations')">Locations</button>
+</div>
+<!-- Events Management -->
+<div class="admin-content active" id="eventsContent">
+<h3>Events Management</h3>
+<button class="btn btn-success" onclick="showEventModal()">Add Event</button>
+<table>
+<thead>
+<tr>
+<th>Title</th><th>Date</th><th>Time</th><th>Location</th><th>Type</th><th>Opponent</th><th>Assigned Players</th><th>Actions</th>
+</tr>
+</thead>
+<tbody id="adminEventTableBody"></tbody>
+</table>
+</div>
+<!-- Users Management -->
+<div class="admin-content" id="usersContent">
+<h3>Users Management</h3>
+<button class="btn btn-success" onclick="showUserModal()">Add User</button>
+<table>
+<thead>
+<tr>
+<th>Name</th><th>Email</th><th>Role</th><th>Created</th><th>Actions</th>
+</tr>
+</thead>
+<tbody id="userTableBody"></tbody>
+</table>
+</div>
+<!-- Locations Management -->
+<div class="admin-content" id="locationsContent">
+<h3>Locations Management</h3>
+<button class="btn btn-success" onclick="showLocationModal()">Add Location</button>
+<table>
+<thead>
+<tr>
+<th>Name</th><th>Address</th><th>Type</th><th>Notes</th><th>Actions</th>
+</tr>
+</thead>
+<tbody id="locationTableBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Event Modal -->
+<div class="modal" id="eventModal">
+<div class="modal-content">
+<h3 id="eventModalTitle">Add Event</h3>
+<input class="form-control" id="eventTitle" placeholder="Event Title" type="text"/>
+<input class="form-control" id="eventDate" placeholder="Date" type="date"/>
+<input class="form-control" id="eventTime" placeholder="Time" type="time"/>
+<select class="form-control" id="eventLocation">
+<option value="">Select Location</option>
+</select>
+<select class="form-control" id="eventType">
+<option value="home">Home</option>
+<option value="away">Away</option>
+<option value="practice">Practice</option>
+</select>
+<input class="form-control" id="eventOpponent" placeholder="Opponent (if applicable)" type="text"/>
+<textarea class="form-control" id="eventDescription" placeholder="Description"></textarea>
+<!-- Player Assignment Section -->
+<div class="player-assignment">
+<h4>Assign Players</h4>
+<div class="player-list" id="playerAssignmentList">
+<!-- Player checkboxes will be generated here -->
+</div>
+</div>
+<button class="btn btn-success" onclick="saveEvent()">Save</button>
+<button class="btn btn-secondary" onclick="closeEventModal()">Cancel</button>
+<input id="eventId" type="hidden"/>
+</div>
+</div>
+<!-- User Modal -->
+<div class="modal" id="userModal">
+<div class="modal-content">
+<h3 id="userModalTitle">Add User</h3>
+<input class="form-control" id="userFirstName" placeholder="First Name" type="text"/>
+<input class="form-control" id="userLastName" placeholder="Last Name" type="text"/>
+<input class="form-control" id="userEmail" placeholder="Email" type="email"/>
+<input class="form-control" id="userPassword" placeholder="Password" type="password"/>
+<select class="form-control" id="userRole">
+<option value="user">User</option>
+<option value="admin">Admin</option>
+</select>
+<button class="btn btn-success" onclick="saveUser()">Save</button>
+<button class="btn btn-secondary" onclick="closeUserModal()">Cancel</button>
+<input id="userId" type="hidden"/>
+</div>
+</div>
+<!-- Location Modal -->
+<div class="modal" id="locationModal">
+<div class="modal-content">
+<h3 id="locationModalTitle">Add Location</h3>
+<input class="form-control" id="locationName" placeholder="Location Name" type="text"/>
+<input class="form-control" id="locationAddress" placeholder="Address" type="text"/>
+<select class="form-control" id="locationType">
+<option value="Indoor">Indoor</option>
+<option value="Outdoor">Outdoor</option>
+<option value="Clay">Clay Court</option>
+<option value="Hard">Hard Court</option>
+<option value="Grass">Grass Court</option>
+</select>
+<textarea class="form-control" id="locationNotes" placeholder="Notes"></textarea>
+<button class="btn btn-success" onclick="saveLocation()">Save</button>
+<button class="btn btn-secondary" onclick="closeLocationModal()">Cancel</button>
+<input id="locationId" type="hidden"/>
+</div>
+</div>
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+    // Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyDzyoa2w16n-T0ULmBE3OwM74cLaPeS_7g",
       authDomain: "my-tennis-scheduler.firebaseapp.com",
@@ -56,200 +564,545 @@
       appId: "1:953557491447:web:a823f2d629d38448673df2",
       measurementId: "G-KFTTHYMKET"
     };
+    
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-  </script>
-</head>
-<body>
-  <!-- Login/Register -->
-  <div class="login-container" id="loginScreen">
-    <div class="login-card">
-      <h2 style="text-align: center; margin-bottom: 30px;">🎾 My Tennis Scheduler</h2>
-      <input class="form-control" id="email" placeholder="Email" type="email"/>
-      <input class="form-control" id="password" placeholder="Password" type="password"/>
-      <button class="btn" onclick="login()">Sign In</button>
-      <button class="btn btn-secondary" onclick="showRegister()">Create Account</button>
-      <div class="notification" id="loginNotification"></div>
-    </div>
-  </div>
-  <div class="login-container hidden" id="registerScreen">
-    <div class="login-card">
-      <h2 style="text-align: center; margin-bottom: 30px;">Join the Team</h2>
-      <input class="form-control" id="regFirstName" placeholder="First Name" type="text"/>
-      <input class="form-control" id="regLastName" placeholder="Last Name" type="text"/>
-      <input class="form-control" id="regEmail" placeholder="Email" type="email"/>
-      <input class="form-control" id="regPassword" placeholder="Password" type="password"/>
-      <button class="btn" onclick="register()">Create Account</button>
-      <button class="btn btn-secondary" onclick="showLogin()">Back to Login</button>
-      <div class="notification" id="registerNotification"></div>
-    </div>
-  </div>
-  <div class="container hidden" id="mainApp">
-    <h2>🎾 My Tennis Scheduler</h2>
-    <button class="btn btn-secondary" onclick="logout()">Logout</button>
-    <hr/>
-    <!-- Events Section -->
-    <h3>Events</h3>
-    <button class="btn" onclick="showEventModal()">Add Event</button>
-    <table>
-      <thead>
-        <tr>
-          <th>Title</th><th>Date</th><th>Time</th><th>Court</th><th>Opponent</th><th>Description</th><th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="eventTableBody"></tbody>
-    </table>
-    <!-- Courts Section -->
-    <h3>Courts</h3>
-    <button class="btn" onclick="showCourtModal()">Add Court</button>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th><th>Location</th><th>Type</th><th>Notes</th><th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="courtTableBody"></tbody>
-    </table>
-    <!-- Opponents Section -->
-    <h3>Opponents</h3>
-    <button class="btn" onclick="showOpponentModal()">Add Opponent</button>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th><th>Contact</th><th>Email</th><th>Phone</th><th>League</th><th>Notes</th><th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="opponentTableBody"></tbody>
-    </table>
-  </div>
-  <!-- Event Modal -->
-  <div class="modal" id="eventModal">
-    <div class="modal-content">
-      <h3 id="eventModalTitle">Add Event</h3>
-      <input class="form-control" id="eventTitle" placeholder="Title" type="text"/>
-      <input class="form-control" id="eventDate" placeholder="Date" type="date"/>
-      <input class="form-control" id="eventTime" placeholder="Time" type="time"/>
-      <input class="form-control" id="eventCourt" placeholder="Court" type="text"/>
-      <input class="form-control" id="eventOpponent" placeholder="Opponent" type="text"/>
-      <textarea class="form-control" id="eventDescription" placeholder="Description"></textarea>
-      <button class="btn" id="saveEventBtn" onclick="saveEvent()">Save</button>
-      <button class="btn btn-secondary" onclick="closeEventModal()">Cancel</button>
-      <input type="hidden" id="eventId"/>
-    </div>
-  </div>
-  <!-- Court Modal -->
-  <div class="modal" id="courtModal">
-    <div class="modal-content">
-      <h3 id="courtModalTitle">Add Court</h3>
-      <input class="form-control" id="courtName" placeholder="Court Name" type="text"/>
-      <input class="form-control" id="courtLocation" placeholder="Location" type="text"/>
-      <select class="form-control" id="courtType">
-        <option value="Indoor">Indoor</option>
-        <option value="Outdoor">Outdoor</option>
-        <option value="Clay">Clay</option>
-        <option value="Hard">Hard Court</option>
-        <option value="Grass">Grass</option>
-      </select>
-      <textarea class="form-control" id="courtNotes" placeholder="Notes"></textarea>
-      <button class="btn" onclick="saveCourt()">Save</button>
-      <button class="btn btn-secondary" onclick="closeCourtModal()">Cancel</button>
-      <input type="hidden" id="courtId"/>
-    </div>
-  </div>
-  <!-- Opponent Modal -->
-  <div class="modal" id="opponentModal">
-    <div class="modal-content">
-      <h3 id="opponentModalTitle">Add Opponent</h3>
-      <input class="form-control" id="opponentName" placeholder="Name" type="text"/>
-      <input class="form-control" id="opponentContact" placeholder="Contact" type="text"/>
-      <input class="form-control" id="opponentEmail" placeholder="Email" type="email"/>
-      <input class="form-control" id="opponentPhone" placeholder="Phone" type="text"/>
-      <input class="form-control" id="opponentLeague" placeholder="League" type="text"/>
-      <textarea class="form-control" id="opponentNotes" placeholder="Notes"></textarea>
-      <button class="btn" id="saveOpponentBtn" onclick="saveOpponent()">Save</button>
-      <button class="btn btn-secondary" onclick="closeOpponentModal()">Cancel</button>
-      <input type="hidden" id="opponentId"/>
-    </div>
-  </div>
-  <script>
+    
+    // Global variables
+    let events = [], users = [], locations = [];
+    let currentUser = null;
+    let userProfile = null;
+    let isInitialized = false;
+    let currentDate = new Date();
+    let isAdminView = false;
+    let currentView = 'calendar'; // 'calendar' or 'list'
+
     // UI helpers
-    function show(id) {
-      document.getElementById('loginScreen').classList.add('hidden');
-      document.getElementById('registerScreen').classList.add('hidden');
-      document.getElementById('mainApp').classList.add('hidden');
-      if (id) document.getElementById(id).classList.remove('hidden');
-      document.getElementById('loginNotification').textContent = '';
-      document.getElementById('registerNotification').textContent = '';
+    function show(screenId) {
+      console.log(`Switching to screen: ${screenId}`);
+      
+      const screens = ['loginScreen', 'registerScreen', 'mainApp'];
+      screens.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.classList.add('hidden');
+      });
+      
+      if (screenId) {
+        const targetElement = document.getElementById(screenId);
+        if (targetElement) {
+          targetElement.classList.remove('hidden');
+          console.log(`Successfully showed: ${screenId}`);
+        }
+      }
+      
+      clearNotifications();
     }
+    
+    function clearNotifications() {
+      const notifications = ['loginNotification', 'registerNotification'];
+      notifications.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = '';
+      });
+    }
+    
+    function showNotification(elementId, message, isError = true) {
+      const element = document.getElementById(elementId);
+      if (element) {
+        element.textContent = message;
+        element.className = isError ? 'notification' : 'notification success';
+      }
+    }
+    
     function showRegister() { show('registerScreen'); }
     function showLogin() { show('loginScreen'); }
 
-    // Auth
-    function login() {
-      const email = document.getElementById('email').value.trim().toLowerCase();
-      const password = document.getElementById('password').value;
-      auth.signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          show('mainApp');
-          fetchAppData();
-        })
-        .catch((error) => {
-          document.getElementById('loginNotification').textContent = error.message;
-        });
+    // View Toggle Functions
+    function toggleAdminView() {
+      isAdminView = !isAdminView;
+      const toggleSwitch = document.getElementById('toggleSwitch');
+      const appTitle = document.getElementById('appTitle');
+      const userInterface = document.getElementById('userInterface');
+      const adminInterface = document.getElementById('adminInterface');
+      
+      if (isAdminView) {
+        toggleSwitch.classList.add('admin');
+        appTitle.textContent = '🎾 Tennis Scheduler - Admin Panel';
+        userInterface.classList.add('hidden');
+        adminInterface.classList.remove('hidden');
+        loadAdminData();
+      } else {
+        toggleSwitch.classList.remove('admin');
+        appTitle.textContent = '🎾 My Tennis Schedule';
+        userInterface.classList.remove('hidden');
+        adminInterface.classList.add('hidden');
+        loadUserData();
+        if (currentView === 'calendar') {
+          renderCalendar();
+        } else {
+          renderEventList();
+        }
+      }
     }
-    function register() {
-      const firstName = document.getElementById('regFirstName').value;
-      const lastName = document.getElementById('regLastName').value;
-      const email = document.getElementById('regEmail').value.trim().toLowerCase();
-      const password = document.getElementById('regPassword').value;
-      if (!firstName || !lastName || !email || !password) {
-        document.getElementById('registerNotification').textContent = 'Please fill all fields';
+    
+    function switchView(viewType) {
+      currentView = viewType;
+      const calendarView = document.getElementById('calendarView');
+      const listView = document.getElementById('listView');
+      const calendarBtn = document.getElementById('calendarViewBtn');
+      const listBtn = document.getElementById('listViewBtn');
+      
+      if (viewType === 'calendar') {
+        calendarView.classList.remove('hidden');
+        listView.classList.add('hidden');
+        calendarBtn.classList.add('active');
+        listBtn.classList.remove('active');
+        renderCalendar();
+      } else {
+        calendarView.classList.add('hidden');
+        listView.classList.remove('hidden');
+        calendarBtn.classList.remove('active');
+        listBtn.classList.add('active');
+        renderEventList();
+      }
+    }
+
+    // Authentication functions
+    async function login() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      
+      if (!email || !password) {
+        showNotification('loginNotification', 'Please enter both email and password');
         return;
       }
-      auth.createUserWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          return db.collection('users').doc(userCredential.user.uid).set({
-            firstName, lastName, email
-          });
-        })
-        .then(() => {
-          show('mainApp');
-          fetchAppData();
-        })
-        .catch((error) => {
-          document.getElementById('registerNotification').textContent = error.message;
-        });
+      
+      const loginBtn = event.target;
+      const originalText = loginBtn.textContent;
+      loginBtn.textContent = 'Signing in...';
+      loginBtn.disabled = true;
+      
+      try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        currentUser = userCredential.user;
+        console.log('Login successful:', currentUser.email);
+        
+        await loadUserProfile();
+        
+      } catch (error) {
+        console.error('Login error:', error);
+        let errorMessage = 'Login failed. Please try again.';
+        
+        switch(error.code) {
+          case 'auth/user-not-found':
+            errorMessage = 'No account found with this email.';
+            break;
+          case 'auth/wrong-password':
+            errorMessage = 'Incorrect password.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Invalid email address.';
+            break;
+          case 'auth/too-many-requests':
+            errorMessage = 'Too many failed attempts. Please try again later.';
+            break;
+        }
+        
+        showNotification('loginNotification', errorMessage);
+      } finally {
+        loginBtn.textContent = originalText;
+        loginBtn.disabled = false;
+      }
     }
-    function logout() {
-      auth.signOut().then(() => {
+    
+    async function register() {
+      const firstName = document.getElementById('regFirstName').value.trim();
+      const lastName = document.getElementById('regLastName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const isAdmin = document.getElementById('regIsAdmin').checked;
+      
+      if (!firstName || !lastName || !email || !password) {
+        showNotification('registerNotification', 'Please fill all fields');
+        return;
+      }
+      
+      if (password.length < 6) {
+        showNotification('registerNotification', 'Password must be at least 6 characters');
+        return;
+      }
+      
+      const registerBtn = event.target;
+      const originalText = registerBtn.textContent;
+      registerBtn.textContent = 'Creating account...';
+      registerBtn.disabled = true;
+      
+      try {
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        currentUser = userCredential.user;
+        
+        userProfile = {
+          firstName: firstName,
+          lastName: lastName,
+          email: email,
+          role: isAdmin ? 'admin' : 'user',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        await db.collection('users').doc(currentUser.uid).set(userProfile);
+        console.log('Registration successful:', currentUser.email);
+        
+        showUserInterface();
+        
+      } catch (error) {
+        console.error('Registration error:', error);
+        let errorMessage = 'Registration failed. Please try again.';
+        
+        switch(error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage = 'An account with this email already exists.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Invalid email address.';
+            break;
+          case 'auth/weak-password':
+            errorMessage = 'Password is too weak.';
+            break;
+        }
+        
+        showNotification('registerNotification', errorMessage);
+      } finally {
+        registerBtn.textContent = originalText;
+        registerBtn.disabled = false;
+      }
+    }
+    
+    async function loadUserProfile() {
+      try {
+        const doc = await db.collection('users').doc(currentUser.uid).get();
+        if (doc.exists) {
+          userProfile = doc.data();
+          console.log('User profile loaded:', userProfile);
+          showUserInterface();
+        } else {
+          console.log('No user profile found, creating default...');
+          userProfile = {
+            firstName: 'User',
+            lastName: '',
+            email: currentUser.email,
+            role: 'user',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          await db.collection('users').doc(currentUser.uid).set(userProfile);
+          showUserInterface();
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+        showNotification('loginNotification', 'Error loading user profile');
+      }
+    }
+    
+    function showUserInterface() {
+      if (!userProfile) return;
+      
+      document.getElementById('userEmailDisplay').textContent = userProfile.email;
+      
+      if (userProfile.role === 'admin') {
+        document.getElementById('userRoleBadge').textContent = 'Admin';
+        document.getElementById('userRoleBadge').classList.add('admin');
+        document.getElementById('adminToggle').classList.remove('hidden');
+      } else {
+        document.getElementById('userRoleBadge').textContent = 'User';
+        document.getElementById('adminToggle').classList.add('hidden');
+      }
+      
+      show('mainApp');
+      loadUserData();
+      renderCalendar();
+    }
+    
+    async function logout() {
+      try {
+        await auth.signOut();
+        currentUser = null;
+        userProfile = null;
+        events = [];
+        users = [];
+        locations = [];
+        isAdminView = false;
         show('loginScreen');
+        console.log('Logout successful');
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    }
+
+    // Helper function to check if user is assigned to event
+    function isUserAssignedToEvent(event) {
+      if (!event.assignedPlayers || !currentUser) return false;
+      return event.assignedPlayers.includes(currentUser.uid);
+    }
+
+    // Calendar Functions
+    function renderCalendar() {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      
+      const monthNames = ["January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"];
+      document.getElementById('calendarTitle').textContent = `${monthNames[month]} ${year}`;
+      
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+      
+      const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      dayHeaders.forEach(day => {
+        const header = document.createElement('div');
+        header.className = 'calendar-day-header';
+        header.textContent = day;
+        grid.appendChild(header);
       });
+      
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const startDate = new Date(firstDay);
+      startDate.setDate(startDate.getDate() - firstDay.getDay());
+      
+      const today = new Date();
+      for (let i = 0; i < 42; i++) {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + i);
+        
+        const dayElement = document.createElement('div');
+        dayElement.className = 'calendar-day';
+        
+        if (date.getMonth() !== month) {
+          dayElement.classList.add('other-month');
+        }
+        
+        if (date.toDateString() === today.toDateString()) {
+          dayElement.classList.add('today');
+        }
+        
+        dayElement.innerHTML = `<div style="font-weight: bold; margin-bottom: 5px;">${date.getDate()}</div>`;
+        
+        const dayEvents = events.filter(event => {
+          if (!event.date) return false;
+          const eventDate = new Date(event.date);
+          return eventDate.toDateString() === date.toDateString();
+        });
+        
+        dayEvents.forEach(event => {
+          const eventElement = document.createElement('div');
+          const isAssigned = isUserAssignedToEvent(event);
+          
+          eventElement.className = `calendar-event ${event.type || 'practice'}`;
+          if (isAssigned) {
+            eventElement.classList.add('assigned');
+          } else {
+            eventElement.classList.add('not-assigned');
+          }
+          
+          eventElement.textContent = `${event.time || ''} ${event.title || 'Event'}`;
+          eventElement.onclick = (e) => showEventPopup(e, event);
+          dayElement.appendChild(eventElement);
+        });
+        
+        grid.appendChild(dayElement);
+      }
+    }
+    
+    function renderEventList() {
+      const eventList = document.getElementById('eventList');
+      eventList.innerHTML = '';
+      
+      // Sort events by date
+      const sortedEvents = [...events].sort((a, b) => {
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return new Date(a.date) - new Date(b.date);
+      });
+      
+      sortedEvents.forEach(event => {
+        const isAssigned = isUserAssignedToEvent(event);
+        const location = locations.find(loc => loc.id === event.locationId);
+        const locationName = location ? location.name : event.location || 'TBD';
+        
+        const eventItem = document.createElement('div');
+        eventItem.className = `event-list-item ${isAssigned ? 'assigned' : 'not-assigned'}`;
+        
+        eventItem.innerHTML = `
+          <div class="event-header">
+            <div class="event-title">${event.title || 'Event'}</div>
+            <div class="event-type-badge ${event.type || 'practice'}">${(event.type || 'practice').charAt(0).toUpperCase() + (event.type || 'practice').slice(1)}</div>
+          </div>
+          <div class="event-details">
+            <div><strong>Date:</strong> ${event.date || 'TBD'}</div>
+            <div><strong>Time:</strong> ${event.time || 'TBD'}</div>
+            <div><strong>Location:</strong> ${locationName}</div>
+            ${event.opponent ? `<div><strong>Opponent:</strong> ${event.opponent}</div>` : ''}
+          </div>
+          ${event.description ? `<div style="margin-top: 10px; color: #666;"><strong>Notes:</strong> ${event.description}</div>` : ''}
+          <div class="assignment-status ${isAssigned ? 'assigned' : 'not-assigned'}">
+            ${isAssigned ? '✓ You are assigned to this event' : '○ You are not assigned to this event'}
+          </div>
+        `;
+        
+        eventList.appendChild(eventItem);
+      });
+      
+      if (sortedEvents.length === 0) {
+        eventList.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">No events scheduled</p>';
+      }
+    }
+    
+    function changeMonth(direction) {
+      currentDate.setMonth(currentDate.getMonth() + direction);
+      renderCalendar();
+    }
+    
+    function showEventPopup(e, event) {
+      const popup = document.getElementById('eventPopup');
+      const content = document.getElementById('eventPopupContent');
+      
+      const location = locations.find(loc => loc.id === event.locationId);
+      const locationName = location ? location.name : event.location || 'TBD';
+      const isAssigned = isUserAssignedToEvent(event);
+      
+      content.innerHTML = `
+        <h4>${event.title}</h4>
+        <p><strong>Date:</strong> ${event.date}</p>
+        <p><strong>Time:</strong> ${event.time || 'TBD'}</p>
+        <p><strong>Location:</strong> ${locationName}</p>
+        <p><strong>Type:</strong> ${event.type ? event.type.charAt(0).toUpperCase() + event.type.slice(1) : 'Practice'}</p>
+        ${event.opponent ? `<p><strong>Opponent:</strong> ${event.opponent}</p>` : ''}
+        ${event.description ? `<p><strong>Notes:</strong> ${event.description}</p>` : ''}
+        <div style="margin-top: 10px; padding: 8px; border-radius: 5px; font-weight: bold; text-align: center; ${isAssigned ? 'background: #d4edda; color: #155724;' : 'background: #f8d7da; color: #721c24;'}">
+          ${isAssigned ? '✓ You are assigned to this event' : '○ You are not assigned to this event'}
+        </div>
+      `;
+      
+      popup.style.left = e.pageX + 10 + 'px';
+      popup.style.top = e.pageY + 10 + 'px';
+      popup.style.display = 'block';
+      
+      setTimeout(() => {
+        document.addEventListener('click', hideEventPopup);
+      }, 100);
+    }
+    
+    function hideEventPopup() {
+      document.getElementById('eventPopup').style.display = 'none';
+      document.removeEventListener('click', hideEventPopup);
     }
 
-    // App Data Fetch
-    let events = [], courts = [], opponents = [];
-    function fetchAppData() {
-      fetchEvents();
-      fetchCourts();
-      fetchOpponents();
+    // Admin Functions
+    function showAdminTab(tabName) {
+      document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      document.querySelectorAll('.admin-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      document.getElementById(tabName + 'Content').classList.add('active');
     }
-
-    // EVENTS CRUD
-    function fetchEvents() {
-      db.collection('events').orderBy('date').get().then(snapshot => {
+    
+    async function loadAdminData() {
+      await Promise.all([
+        fetchAllEvents(),
+        fetchAllUsers(),
+        fetchAllLocations()
+      ]);
+    }
+    
+    async function loadUserData() {
+      await Promise.all([
+        fetchUserEvents(),
+        fetchAllUsers(),
+        fetchAllLocations()
+      ]);
+    }
+    
+    // Events CRUD
+    async function fetchAllEvents() {
+      try {
+        const snapshot = await db.collection('events').orderBy('date').get();
         events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderEventTable();
-      });
+        renderAdminEventTable();
+        console.log('All events fetched:', events.length);
+      } catch (error) {
+        console.error('Error fetching events:', error);
+        const snapshot = await db.collection('events').get();
+        events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderAdminEventTable();
+      }
     }
+    
+    async function fetchUserEvents() {
+      try {
+        const snapshot = await db.collection('events').get();
+        events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (currentView === 'calendar') {
+          renderCalendar();
+        } else {
+          renderEventList();
+        }
+        console.log('User events fetched:', events.length);
+      } catch (error) {
+        console.error('Error fetching user events:', error);
+      }
+    }
+    
     function showEventModal(event = null) {
+      // Populate location dropdown
+      const locationSelect = document.getElementById('eventLocation');
+      locationSelect.innerHTML = '<option value="">Select Location</option>';
+      locations.forEach(location => {
+        const option = document.createElement('option');
+        option.value = location.id;
+        option.textContent = location.name;
+        locationSelect.appendChild(option);
+      });
+      
+      // Populate player assignment list
+      const playerList = document.getElementById('playerAssignmentList');
+      playerList.innerHTML = '';
+      users.filter(user => user.role === 'user').forEach(user => {
+        const playerDiv = document.createElement('div');
+        playerDiv.className = 'player-checkbox';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = user.id;
+        checkbox.id = `player_${user.id}`;
+        
+        if (event && event.assignedPlayers && event.assignedPlayers.includes(user.id)) {
+          checkbox.checked = true;
+        }
+        
+        const label = document.createElement('label');
+        label.htmlFor = `player_${user.id}`;
+        label.textContent = `${user.firstName} ${user.lastName}`;
+        label.style.cursor = 'pointer';
+        label.style.margin = '0';
+        
+        playerDiv.appendChild(checkbox);
+        playerDiv.appendChild(label);
+        playerList.appendChild(playerDiv);
+      });
+      
       document.getElementById('eventModal').classList.add('show');
       if (event) {
         document.getElementById('eventModalTitle').textContent = 'Edit Event';
         document.getElementById('eventTitle').value = event.title || '';
         document.getElementById('eventDate').value = event.date || '';
         document.getElementById('eventTime').value = event.time || '';
-        document.getElementById('eventCourt').value = event.court || '';
+        document.getElementById('eventLocation').value = event.locationId || '';
+        document.getElementById('eventType').value = event.type || 'practice';
         document.getElementById('eventOpponent').value = event.opponent || '';
         document.getElementById('eventDescription').value = event.description || '';
         document.getElementById('eventId').value = event.id || '';
@@ -258,73 +1111,111 @@
         document.getElementById('eventTitle').value = '';
         document.getElementById('eventDate').value = '';
         document.getElementById('eventTime').value = '';
-        document.getElementById('eventCourt').value = '';
+        document.getElementById('eventLocation').value = '';
+        document.getElementById('eventType').value = 'practice';
         document.getElementById('eventOpponent').value = '';
         document.getElementById('eventDescription').value = '';
         document.getElementById('eventId').value = '';
       }
     }
+    
     function closeEventModal() {
       document.getElementById('eventModal').classList.remove('show');
     }
-    function saveEvent() {
+    
+    async function saveEvent() {
       const title = document.getElementById('eventTitle').value;
       const date = document.getElementById('eventDate').value;
       const time = document.getElementById('eventTime').value;
-      const court = document.getElementById('eventCourt').value;
+      const locationId = document.getElementById('eventLocation').value;
+      const type = document.getElementById('eventType').value;
       const opponent = document.getElementById('eventOpponent').value;
       const description = document.getElementById('eventDescription').value;
       const id = document.getElementById('eventId').value;
-      const eventData = { title, date, time, court, opponent, description };
-      if (id) {
-        db.collection('events').doc(id).update(eventData)
-          .then(() => {
-            fetchEvents();
-            closeEventModal();
-          })
-          .catch((error) => {
-            alert(error.message);
-          });
-      } else {
-        db.collection('events').add(eventData)
-          .then(() => {
-            fetchEvents();
-            closeEventModal();
-          })
-          .catch((error) => {
-            alert(error.message);
-          });
+      
+      // Get assigned players
+      const assignedPlayers = [];
+      document.querySelectorAll('#playerAssignmentList input[type="checkbox"]:checked').forEach(checkbox => {
+        assignedPlayers.push(checkbox.value);
+      });
+      
+      const eventData = { 
+        title, date, time, locationId, type, opponent, description, assignedPlayers,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      try {
+        if (id) {
+          await db.collection('events').doc(id).update(eventData);
+        } else {
+          eventData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+          await db.collection('events').add(eventData);
+        }
+        
+        if (isAdminView) {
+          await fetchAllEvents();
+        } else {
+          await fetchUserEvents();
+        }
+        closeEventModal();
+      } catch (error) {
+        console.error('Error saving event:', error);
+        alert('Error saving event: ' + error.message);
       }
     }
+    
     function editEvent(id) {
       const event = events.find(e => e.id === id);
       if (event) showEventModal(event);
     }
-    function removeEvent(id) {
+    
+    async function removeEvent(id) {
       if (confirm('Delete this event?')) {
-        db.collection('events').doc(id).delete()
-          .then(() => {
-            fetchEvents();
-          })
-          .catch((error) => {
-            alert(error.message);
-          });
+        try {
+          await db.collection('events').doc(id).delete();
+          if (isAdminView) {
+            await fetchAllEvents();
+          } else {
+            await fetchUserEvents();
+          }
+        } catch (error) {
+          console.error('Error deleting event:', error);
+          alert('Error deleting event: ' + error.message);
+        }
       }
     }
-    function renderEventTable() {
-      const tbody = document.getElementById('eventTableBody');
+    
+    function renderAdminEventTable() {
+      const tbody = document.getElementById('adminEventTableBody');
+      if (!tbody) return;
+      
       tbody.innerHTML = '';
       events.forEach(event => {
+        const location = locations.find(loc => loc.id === event.locationId);
+        const locationName = location ? location.name : event.location || 'TBD';
+        
+        // Get assigned player names
+        const assignedPlayerNames = [];
+        if (event.assignedPlayers) {
+          event.assignedPlayers.forEach(playerId => {
+            const user = users.find(u => u.id === playerId);
+            if (user) {
+              assignedPlayerNames.push(`${user.firstName} ${user.lastName}`);
+            }
+          });
+        }
+        
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${event.title || ''}</td>
           <td>${event.date || ''}</td>
           <td>${event.time || ''}</td>
-          <td>${event.court || ''}</td>
+          <td>${locationName}</td>
+          <td><span class="calendar-event ${event.type || 'practice'}" style="padding: 3px 8px; border-radius: 3px;">${(event.type || 'practice').charAt(0).toUpperCase() + (event.type || 'practice').slice(1)}</span></td>
           <td>${event.opponent || ''}</td>
-          <td>${event.description || ''}</td>
+          <td>${assignedPlayerNames.join(', ') || 'None'}</td>
           <td>
-            <button class="btn btn-secondary" onclick="editEvent('${event.id}')">Edit</button>
+            <button class="btn btn-warning" onclick="editEvent('${event.id}')">Edit</button>
             <button class="btn btn-danger" onclick="removeEvent('${event.id}')">Delete</button>
           </td>
         `;
@@ -332,24 +1223,256 @@
       });
     }
 
-    // COURTS CRUD
-    function fetchCourts() {
-      db.collection('courts').orderBy('name').get().then(snapshot => {
-        courts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderCourtTable();
-      });
-   {
-      document.getElementById('courtModal').classList.add('show');
-      if (court) {
-        document.getElementById('courtModalTitle').textContent = 'Edit Court';
-        document.getElementById('courtName').value = court.name || '';
-        document.getElementById('courtLocation').value = court.location || '';
-        document.getElementById('courtType').value = court.type || '';
-        document.getElementById('courtNotes').value = court.notes || '';
-        document.getElementById('courtId').value = court.id || '';
+    // Users CRUD
+    async function fetchAllUsers() {
+      try {
+        const snapshot = await db.collection('users').get();
+        users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (isAdminView) {
+          renderUserTable();
+        }
+        console.log('Users fetched:', users.length);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    }
+    
+    function showUserModal(user = null) {
+      document.getElementById('userModal').classList.add('show');
+      if (user) {
+        document.getElementById('userModalTitle').textContent = 'Edit User';
+        document.getElementById('userFirstName').value = user.firstName || '';
+        document.getElementById('userLastName').value = user.lastName || '';
+        document.getElementById('userEmail').value = user.email || '';
+        document.getElementById('userPassword').value = '';
+        document.getElementById('userPassword').placeholder = 'Leave blank to keep current password';
+        document.getElementById('userRole').value = user.role || 'user';
+        document.getElementById('userId').value = user.id || '';
       } else {
-        document.getElementById('courtModalTitle').textContent = 'Add Court';
-        document.getElementById('courtName').value = '';
-        document.getElementById('courtLocation').value = '';
-        document.getElementById('courtType').value = '';
-        document.getElementBy
+        document.getElementById('userModalTitle').textContent = 'Add User';
+        document.getElementById('userFirstName').value = '';
+        document.getElementById('userLastName').value = '';
+        document.getElementById('userEmail').value = '';
+        document.getElementById('userPassword').value = '';
+        document.getElementById('userPassword').placeholder = 'Password';
+        document.getElementById('userRole').value = 'user';
+        document.getElementById('userId').value = '';
+      }
+    }
+    
+    function closeUserModal() {
+      document.getElementById('userModal').classList.remove('show');
+    }
+    
+    async function saveUser() {
+      const firstName = document.getElementById('userFirstName').value;
+      const lastName = document.getElementById('userLastName').value;
+      const email = document.getElementById('userEmail').value;
+      const password = document.getElementById('userPassword').value;
+      const role = document.getElementById('userRole').value;
+      const id = document.getElementById('userId').value;
+      
+      if (!firstName || !lastName || !email || (!id && !password)) {
+        alert('Please fill all required fields');
+        return;
+      }
+      
+      try {
+        if (id) {
+          const userData = { firstName, lastName, email, role };
+          await db.collection('users').doc(id).update(userData);
+        } else {
+          const userData = { 
+            firstName, lastName, email, role,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          await db.collection('users').add(userData);
+        }
+        
+        await fetchAllUsers();
+        closeUserModal();
+      } catch (error) {
+        console.error('Error saving user:', error);
+        alert('Error saving user: ' + error.message);
+      }
+    }
+    
+    function editUser(id) {
+      const user = users.find(u => u.id === id);
+      if (user) showUserModal(user);
+    }
+    
+    async function removeUser(id) {
+      if (confirm('Delete this user?')) {
+        try {
+          await db.collection('users').doc(id).delete();
+          await fetchAllUsers();
+        } catch (error) {
+          console.error('Error deleting user:', error);
+          alert('Error deleting user: ' + error.message);
+        }
+      }
+    }
+    
+    function renderUserTable() {
+      const tbody = document.getElementById('userTableBody');
+      if (!tbody) return;
+      
+      tbody.innerHTML = '';
+      users.forEach(user => {
+        const tr = document.createElement('tr');
+        const createdDate = user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleDateString() : 'N/A';
+        
+        tr.innerHTML = `
+          <td>${user.firstName} ${user.lastName}</td>
+          <td>${user.email}</td>
+          <td><span class="role-badge ${user.role === 'admin' ? 'admin' : ''}">${user.role || 'user'}</span></td>
+          <td>${createdDate}</td>
+          <td>
+            <button class="btn btn-warning" onclick="editUser('${user.id}')">Edit</button>
+            <button class="btn btn-danger" onclick="removeUser('${user.id}')">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Locations CRUD
+    async function fetchAllLocations() {
+      try {
+        const snapshot = await db.collection('locations').get();
+        locations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (isAdminView) {
+          renderLocationTable();
+        }
+        console.log('Locations fetched:', locations.length);
+      } catch (error) {
+        console.error('Error fetching locations:', error);
+      }
+    }
+    
+    function showLocationModal(location = null) {
+      document.getElementById('locationModal').classList.add('show');
+      if (location) {
+        document.getElementById('locationModalTitle').textContent = 'Edit Location';
+        document.getElementById('locationName').value = location.name || '';
+        document.getElementById('locationAddress').value = location.address || '';
+        document.getElementById('locationType').value = location.type || '';
+        document.getElementById('locationNotes').value = location.notes || '';
+        document.getElementById('locationId').value = location.id || '';
+      } else {
+        document.getElementById('locationModalTitle').textContent = 'Add Location';
+        document.getElementById('locationName').value = '';
+        document.getElementById('locationAddress').value = '';
+        document.getElementById('locationType').value = '';
+        document.getElementById('locationNotes').value = '';
+        document.getElementById('locationId').value = '';
+      }
+    }
+    
+    function closeLocationModal() {
+      document.getElementById('locationModal').classList.remove('show');
+    }
+    
+    async function saveLocation() {
+      const name = document.getElementById('locationName').value;
+      const address = document.getElementById('locationAddress').value;
+      const type = document.getElementById('locationType').value;
+      const notes = document.getElementById('locationNotes').value;
+      const id = document.getElementById('locationId').value;
+      
+      const locationData = { 
+        name, address, type, notes,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      try {
+        if (id) {
+          await db.collection('locations').doc(id).update(locationData);
+        } else {
+          locationData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+          await db.collection('locations').add(locationData);
+        }
+        
+        await fetchAllLocations();
+        closeLocationModal();
+      } catch (error) {
+        console.error('Error saving location:', error);
+        alert('Error saving location: ' + error.message);
+      }
+    }
+    
+    function editLocation(id) {
+      const location = locations.find(l => l.id === id);
+      if (location) showLocationModal(location);
+    }
+    
+    async function removeLocation(id) {
+      if (confirm('Delete this location?')) {
+        try {
+          await db.collection('locations').doc(id).delete();
+          await fetchAllLocations();
+        } catch (error) {
+          console.error('Error deleting location:', error);
+          alert('Error deleting location: ' + error.message);
+        }
+      }
+    }
+    
+    function renderLocationTable() {
+      const tbody = document.getElementById('locationTableBody');
+      if (!tbody) return;
+      
+      tbody.innerHTML = '';
+      locations.forEach(location => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${location.name || ''}</td>
+          <td>${location.address || ''}</td>
+          <td>${location.type || ''}</td>
+          <td>${location.notes || ''}</td>
+          <td>
+            <button class="btn btn-warning" onclick="editLocation('${location.id}')">Edit</button>
+            <button class="btn btn-danger" onclick="removeLocation('${location.id}')">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Auth state listener
+    auth.onAuthStateChanged(async (user) => {
+      console.log('Auth state changed:', user ? user.email : 'No user');
+      
+      if (user && !isInitialized) {
+        currentUser = user;
+        isInitialized = true;
+        await loadUserProfile();
+      } else if (!user) {
+        currentUser = null;
+        userProfile = null;
+        isInitialized = false;
+        show('loginScreen');
+      }
+    });
+    
+    // Add Enter key support for login
+    document.addEventListener('DOMContentLoaded', function() {
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      
+      if (emailInput) {
+        emailInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') login();
+        });
+      }
+      
+      if (passwordInput) {
+        passwordInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') login();
+        });
+      }
+    });
+  </script>
+</body>
+</html>
