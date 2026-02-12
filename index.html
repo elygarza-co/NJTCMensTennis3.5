@@ -366,7 +366,7 @@
 <h2 style="text-align: center; margin-bottom: 30px;">🎾 My Tennis Scheduler</h2>
 <input class="form-control" id="email" placeholder="Email" type="email"/>
 <input class="form-control" id="password" placeholder="Password" type="password"/>
-<button class="btn" onclick="login()">Sign In</button>
+<button class="btn" onclick="handleLogin()">Sign In</button>
 <button class="btn btn-secondary" onclick="showRegister()">Create Account</button>
 <div class="notification" id="loginNotification"></div>
 </div>
@@ -383,7 +383,7 @@
 <input id="regIsAdmin" style="margin-right: 5px;" type="checkbox"/>
         Register as Admin
       </label>
-<button class="btn" onclick="register()">Create Account</button>
+<button class="btn" onclick="handleRegister()">Create Account</button>
 <button class="btn btn-secondary" onclick="showLogin()">Back to Login</button>
 <div class="notification" id="registerNotification"></div>
 </div>
@@ -403,7 +403,7 @@
 </div>
 <span>Admin</span>
 </div>
-<button class="btn btn-secondary" onclick="logout()">Logout</button>
+<button class="btn btn-secondary" onclick="handleLogout()">Logout</button>
 </div>
 </div>
 <!-- User Interface -->
@@ -669,22 +669,29 @@
       }
     }
 
-    // Authentication functions
-    async function login() {
+    // Authentication functions with proper error handling
+    async function handleLogin() {
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
+      
+      console.log('Login attempt started');
       
       if (!email || !password) {
         showNotification('loginNotification', 'Please enter both email and password');
         return;
       }
       
-      const loginBtn = event.target;
-      const originalText = loginBtn.textContent;
-      loginBtn.textContent = 'Signing in...';
-      loginBtn.disabled = true;
+      // Find the login button by its onclick attribute or text content
+      const loginBtn = document.querySelector('button[onclick="handleLogin()"]') || 
+                      Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('Sign In'));
+      const originalText = loginBtn ? loginBtn.textContent : 'Sign In';
+      if (loginBtn) {
+        loginBtn.textContent = 'Signing in...';
+        loginBtn.disabled = true;
+      }
       
       try {
+        console.log('Attempting Firebase login...');
         const userCredential = await auth.signInWithEmailAndPassword(email, password);
         currentUser = userCredential.user;
         console.log('Login successful:', currentUser.email);
@@ -708,21 +715,28 @@
           case 'auth/too-many-requests':
             errorMessage = 'Too many failed attempts. Please try again later.';
             break;
+          case 'auth/network-request-failed':
+            errorMessage = 'Network error. Check your internet connection.';
+            break;
         }
         
         showNotification('loginNotification', errorMessage);
       } finally {
-        loginBtn.textContent = originalText;
-        loginBtn.disabled = false;
+        if (loginBtn) {
+          loginBtn.textContent = originalText;
+          loginBtn.disabled = false;
+        }
       }
     }
     
-    async function register() {
+    async function handleRegister() {
       const firstName = document.getElementById('regFirstName').value.trim();
       const lastName = document.getElementById('regLastName').value.trim();
       const email = document.getElementById('regEmail').value.trim();
       const password = document.getElementById('regPassword').value;
       const isAdmin = document.getElementById('regIsAdmin').checked;
+      
+      console.log('Registration attempt started');
       
       if (!firstName || !lastName || !email || !password) {
         showNotification('registerNotification', 'Please fill all fields');
@@ -734,12 +748,17 @@
         return;
       }
       
-      const registerBtn = event.target;
-      const originalText = registerBtn.textContent;
-      registerBtn.textContent = 'Creating account...';
-      registerBtn.disabled = true;
+      // Find the register button by its onclick attribute or text content
+      const registerBtn = document.querySelector('button[onclick="handleRegister()"]') || 
+                          Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('Create Account'));
+      const originalText = registerBtn ? registerBtn.textContent : 'Create Account';
+      if (registerBtn) {
+        registerBtn.textContent = 'Creating account...';
+        registerBtn.disabled = true;
+      }
       
       try {
+        console.log('Attempting Firebase registration...');
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         currentUser = userCredential.user;
         
@@ -770,17 +789,23 @@
           case 'auth/weak-password':
             errorMessage = 'Password is too weak.';
             break;
+          case 'auth/network-request-failed':
+            errorMessage = 'Network error. Check your internet connection.';
+            break;
         }
         
         showNotification('registerNotification', errorMessage);
       } finally {
-        registerBtn.textContent = originalText;
-        registerBtn.disabled = false;
+        if (registerBtn) {
+          registerBtn.textContent = originalText;
+          registerBtn.disabled = false;
+        }
       }
     }
     
     async function loadUserProfile() {
       try {
+        console.log('Loading user profile...');
         const doc = await db.collection('users').doc(currentUser.uid).get();
         if (doc.exists) {
           userProfile = doc.data();
@@ -805,7 +830,12 @@
     }
     
     function showUserInterface() {
-      if (!userProfile) return;
+      if (!userProfile) {
+        console.error('No user profile available');
+        return;
+      }
+      
+      console.log('Showing user interface for:', userProfile.role);
       
       document.getElementById('userEmailDisplay').textContent = userProfile.email;
       
@@ -823,7 +853,7 @@
       renderCalendar();
     }
     
-    async function logout() {
+    async function handleLogout() {
       try {
         await auth.signOut();
         currentUser = null;
@@ -1003,7 +1033,12 @@
       document.querySelectorAll('.admin-tab').forEach(tab => {
         tab.classList.remove('active');
       });
-      event.target.classList.add('active');
+      
+      // Find and activate the clicked tab
+      const activeTab = document.querySelector(`button[onclick="showAdminTab('${tabName}')"]`);
+      if (activeTab) {
+        activeTab.classList.add('active');
+      }
       
       document.querySelectorAll('.admin-content').forEach(content => {
         content.classList.remove('active');
@@ -1012,19 +1047,27 @@
     }
     
     async function loadAdminData() {
-      await Promise.all([
-        fetchAllEvents(),
-        fetchAllUsers(),
-        fetchAllLocations()
-      ]);
+      try {
+        await Promise.all([
+          fetchAllEvents(),
+          fetchAllUsers(),
+          fetchAllLocations()
+        ]);
+      } catch (error) {
+        console.error('Error loading admin data:', error);
+      }
     }
     
     async function loadUserData() {
-      await Promise.all([
-        fetchUserEvents(),
-        fetchAllUsers(),
-        fetchAllLocations()
-      ]);
+      try {
+        await Promise.all([
+          fetchUserEvents(),
+          fetchAllUsers(),
+          fetchAllLocations()
+        ]);
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      }
     }
     
     // Events CRUD
@@ -1458,20 +1501,24 @@
     
     // Add Enter key support for login
     document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, setting up event listeners');
+      
       const emailInput = document.getElementById('email');
       const passwordInput = document.getElementById('password');
       
       if (emailInput) {
         emailInput.addEventListener('keypress', function(e) {
-          if (e.key === 'Enter') login();
+          if (e.key === 'Enter') handleLogin();
         });
       }
       
       if (passwordInput) {
         passwordInput.addEventListener('keypress', function(e) {
-          if (e.key === 'Enter') login();
+          if (e.key === 'Enter') handleLogin();
         });
       }
+      
+      console.log('Event listeners set up successfully');
     });
   </script>
 </body>
