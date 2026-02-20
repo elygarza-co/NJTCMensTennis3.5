@@ -16,6 +16,7 @@
     .container { max-width: 1200px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 30px; }
     .hidden { display: none !important; }
     .btn { background: #667eea; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin: 5px; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
     .btn-danger { background: #dc3545; }
     .btn-secondary { background: #6c757d; }
     .btn-success { background: #28a745; }
@@ -417,6 +418,13 @@
     
     .show { display: block !important; }
     .visible { visibility: visible !important; opacity: 1 !important; }
+
+    /* Loading indicator */
+    .loading {
+      text-align: center;
+      color: #667eea;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -426,7 +434,7 @@
 <h2 style="text-align: center; margin-bottom: 30px;">🎾 My Tennis Scheduler</h2>
 <input class="form-control" id="email" placeholder="Email" type="email"/>
 <input class="form-control" id="password" placeholder="Password" type="password"/>
-<button class="btn" onclick="handleLogin()">Sign In</button>
+<button class="btn" id="loginBtn" onclick="handleLogin()">Sign In</button>
 <button class="btn btn-secondary" onclick="showRegister()">Create Account</button>
 <div class="notification" id="loginNotification"></div>
 </div>
@@ -443,7 +451,7 @@
 <input id="regIsAdmin" style="margin-right: 5px;" type="checkbox"/>
         Register as Admin
       </label>
-<button class="btn" onclick="handleRegister()">Create Account</button>
+<button class="btn" id="registerBtn" onclick="handleRegister()">Create Account</button>
 <button class="btn btn-secondary" onclick="showLogin()">Back to Login</button>
 <div class="notification" id="registerNotification"></div>
 </div>
@@ -659,6 +667,7 @@
     let currentDate = new Date();
     let isAdminView = false;
     let currentView = 'calendar'; // 'calendar' or 'list'
+    let authStateProcessed = false; // Prevent duplicate processing
 
     // UI helpers
     function show(screenId) {
@@ -697,8 +706,22 @@
       }
     }
     
-    function showRegister() { show('registerScreen'); }
-    function showLogin() { show('loginScreen'); }
+    function showRegister() { 
+      show('registerScreen'); 
+      // Clear form fields
+      document.getElementById('regFirstName').value = '';
+      document.getElementById('regLastName').value = '';
+      document.getElementById('regEmail').value = '';
+      document.getElementById('regPassword').value = '';
+      document.getElementById('regIsAdmin').checked = false;
+    }
+    
+    function showLogin() { 
+      show('loginScreen'); 
+      // Clear form fields
+      document.getElementById('email').value = '';
+      document.getElementById('password').value = '';
+    }
 
     // View Toggle Functions
     function toggleAdminView() {
@@ -769,14 +792,10 @@
         return;
       }
       
-      // Find the login button by its onclick attribute or text content
-      const loginBtn = document.querySelector('button[onclick="handleLogin()"]') || 
-                      Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('Sign In'));
-      const originalText = loginBtn ? loginBtn.textContent : 'Sign In';
-      if (loginBtn) {
-        loginBtn.textContent = 'Signing in...';
-        loginBtn.disabled = true;
-      }
+      const loginBtn = document.getElementById('loginBtn');
+      const originalText = loginBtn.textContent;
+      loginBtn.textContent = 'Signing in...';
+      loginBtn.disabled = true;
       
       try {
         console.log('Attempting Firebase login...');
@@ -784,7 +803,7 @@
         currentUser = userCredential.user;
         console.log('Login successful:', currentUser.email);
         
-        await loadUserProfile();
+        // The auth state listener will handle the rest
         
       } catch (error) {
         console.error('Login error:', error);
@@ -806,14 +825,15 @@
           case 'auth/network-request-failed':
             errorMessage = 'Network error. Check your internet connection.';
             break;
+          case 'auth/invalid-credential':
+            errorMessage = 'Invalid email or password.';
+            break;
         }
         
         showNotification('loginNotification', errorMessage);
-      } finally {
-        if (loginBtn) {
-          loginBtn.textContent = originalText;
-          loginBtn.disabled = false;
-        }
+        
+        loginBtn.textContent = originalText;
+        loginBtn.disabled = false;
       }
     }
     
@@ -836,21 +856,18 @@
         return;
       }
       
-      // Find the register button by its onclick attribute or text content
-      const registerBtn = document.querySelector('button[onclick="handleRegister()"]') || 
-                          Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('Create Account'));
-      const originalText = registerBtn ? registerBtn.textContent : 'Create Account';
-      if (registerBtn) {
-        registerBtn.textContent = 'Creating account...';
-        registerBtn.disabled = true;
-      }
+      const registerBtn = document.getElementById('registerBtn');
+      const originalText = registerBtn.textContent;
+      registerBtn.textContent = 'Creating account...';
+      registerBtn.disabled = true;
       
       try {
         console.log('Attempting Firebase registration...');
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         currentUser = userCredential.user;
         
-        userProfile = {
+        // Create user profile in Firestore
+        const newUserProfile = {
           firstName: firstName,
           lastName: lastName,
           email: email,
@@ -858,10 +875,19 @@
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
         
-        await db.collection('users').doc(currentUser.uid).set(userProfile);
-        console.log('Registration successful:', currentUser.email);
+        console.log('Creating user profile in Firestore...');
+        await db.collection('users').doc(currentUser.uid).set(newUserProfile);
         
-        showUserInterface();
+        // Set local userProfile
+        userProfile = newUserProfile;
+        
+        console.log('Registration successful:', currentUser.email);
+        showNotification('registerNotification', 'Account created successfully! Redirecting...', false);
+        
+        // Small delay to show success message
+        setTimeout(() => {
+          showUserInterface();
+        }, 1000);
         
       } catch (error) {
         console.error('Registration error:', error);
@@ -883,24 +909,23 @@
         }
         
         showNotification('registerNotification', errorMessage);
-      } finally {
-        if (registerBtn) {
-          registerBtn.textContent = originalText;
-          registerBtn.disabled = false;
-        }
+        
+        registerBtn.textContent = originalText;
+        registerBtn.disabled = false;
       }
     }
     
     async function loadUserProfile() {
       try {
-        console.log('Loading user profile...');
+        console.log('Loading user profile for:', currentUser.uid);
         const doc = await db.collection('users').doc(currentUser.uid).get();
+        
         if (doc.exists) {
           userProfile = doc.data();
           console.log('User profile loaded:', userProfile);
-          showUserInterface();
         } else {
           console.log('No user profile found, creating default...');
+          // Create a default profile if none exists
           userProfile = {
             firstName: 'User',
             lastName: '',
@@ -908,12 +933,23 @@
             role: 'user',
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           };
+          
           await db.collection('users').doc(currentUser.uid).set(userProfile);
-          showUserInterface();
+          console.log('Default user profile created');
         }
+        
+        showUserInterface();
+        
       } catch (error) {
         console.error('Error loading user profile:', error);
-        showNotification('loginNotification', 'Error loading user profile');
+        showNotification('loginNotification', 'Error loading user profile. Please try again.');
+        
+        // Reset login button if we're on login screen
+        const loginBtn = document.getElementById('loginBtn');
+        if (loginBtn) {
+          loginBtn.textContent = 'Sign In';
+          loginBtn.disabled = false;
+        }
       }
     }
     
@@ -924,21 +960,21 @@
       }
       
       console.log('Showing user interface for:', userProfile.role);
-      console.log('Full user profile:', userProfile);
       
       document.getElementById('userEmailDisplay').textContent = userProfile.email;
       
       // Clear any existing admin classes first
-      document.getElementById('userRoleBadge').classList.remove('admin');
+      const roleBadge = document.getElementById('userRoleBadge');
+      roleBadge.classList.remove('admin');
       
       if (userProfile.role === 'admin') {
         console.log('Setting up admin interface');
-        document.getElementById('userRoleBadge').textContent = 'Admin';
-        document.getElementById('userRoleBadge').classList.add('admin');
+        roleBadge.textContent = 'Admin';
+        roleBadge.classList.add('admin');
         document.getElementById('adminToggle').classList.remove('hidden');
       } else {
         console.log('Setting up user interface');
-        document.getElementById('userRoleBadge').textContent = 'User';
+        roleBadge.textContent = 'User';
         document.getElementById('adminToggle').classList.add('hidden');
       }
       
@@ -950,12 +986,15 @@
     async function handleLogout() {
       try {
         await auth.signOut();
+        // Reset all global variables
         currentUser = null;
         userProfile = null;
         events = [];
         users = [];
         locations = [];
         isAdminView = false;
+        authStateProcessed = false;
+        
         show('loginScreen');
         console.log('Logout successful');
       } catch (error) {
@@ -1730,18 +1769,25 @@
       });
     }
 
-    // Auth state listener
+    // FIXED: Auth state listener with proper initialization
     auth.onAuthStateChanged(async (user) => {
       console.log('Auth state changed:', user ? user.email : 'No user');
       
-      if (user && !isInitialized) {
+      if (user && !authStateProcessed) {
+        authStateProcessed = true;
         currentUser = user;
-        isInitialized = true;
+        console.log('User authenticated, loading profile...');
         await loadUserProfile();
-      } else if (!user) {
+      } else if (!user && authStateProcessed) {
+        // User logged out
+        console.log('User logged out, resetting state...');
         currentUser = null;
         userProfile = null;
-        isInitialized = false;
+        authStateProcessed = false;
+        show('loginScreen');
+      } else if (!user && !authStateProcessed) {
+        // Initial load with no user
+        console.log('No authenticated user found');
         show('loginScreen');
       }
     });
@@ -1774,7 +1820,7 @@
     
     async function loadUserAssignments() {
       const assignmentsContainer = document.getElementById('profileAssignments');
-      assignmentsContainer.innerHTML = '<p>Loading assignments...</p>';
+      assignmentsContainer.innerHTML = '<p class="loading">Loading assignments...</p>';
       
       try {
         // Get all events where user is assigned
@@ -1841,10 +1887,11 @@
       }
     }
 
-    // Add Enter key support for login
+    // Add Enter key support for login and registration
     document.addEventListener('DOMContentLoaded', function() {
       console.log('DOM loaded, setting up event listeners');
       
+      // Login form enter key support
       const emailInput = document.getElementById('email');
       const passwordInput = document.getElementById('password');
       
@@ -1859,6 +1906,17 @@
           if (e.key === 'Enter') handleLogin();
         });
       }
+      
+      // Registration form enter key support
+      const regInputs = ['regFirstName', 'regLastName', 'regEmail', 'regPassword'];
+      regInputs.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) {
+          input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') handleRegister();
+          });
+        }
+      });
       
       console.log('Event listeners set up successfully');
     });
