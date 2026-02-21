@@ -15,16 +15,25 @@
     }
     .container { max-width: 1200px; margin: 40px auto; background: #fff; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); padding: 30px; }
     .hidden { display: none !important; }
-    .btn { background: #667eea; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin: 5px; }
-    .btn:disabled { background: #ccc; cursor: not-allowed; }
+    .btn { background: #667eea; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin: 5px; transition: all 0.3s; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; opacity: 0.6; }
+    .btn:hover:not(:disabled) { background: #5a6fd8; transform: translateY(-1px); }
     .btn-danger { background: #dc3545; }
+    .btn-danger:hover:not(:disabled) { background: #c82333; }
     .btn-secondary { background: #6c757d; }
+    .btn-secondary:hover:not(:disabled) { background: #5a6268; }
     .btn-success { background: #28a745; }
+    .btn-success:hover:not(:disabled) { background: #218838; }
     .btn-warning { background: #ffc107; color: #212529; }
+    .btn-warning:hover:not(:disabled) { background: #e0a800; }
     .btn-info { background: #17a2b8; }
+    .btn-info:hover:not(:disabled) { background: #138496; }
     .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 10px; box-sizing: border-box; }
-    .notification { margin-top: 15px; color: #dc3545; font-weight: bold; }
-    .success { color: #28a745; }
+    .form-control:focus { border-color: #667eea; outline: none; box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2); }
+    .notification { margin-top: 15px; color: #dc3545; font-weight: bold; padding: 10px; border-radius: 5px; }
+    .notification.error { background: #f8d7da; border: 1px solid #f5c6cb; }
+    .notification.success { color: #155724; background: #d4edda; border: 1px solid #c3e6cb; }
+    .notification.info { color: #0c5460; background: #d1ecf1; border: 1px solid #bee5eb; }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
     th { background: #f8f9fa; font-weight: bold; }
@@ -45,7 +54,39 @@
       max-width: 400px;
       width: 100%;
     }
-    .login-card h2 { color: #667eea; }
+    .login-card h2 { color: #667eea; text-align: center; margin-bottom: 30px; }
+    
+    /* Loading spinner */
+    .spinner {
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #667eea;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 8px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Debug panel */
+    .debug-panel {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      max-width: 300px;
+      display: none;
+    }
+    .debug-panel.show { display: block; }
     
     /* View Toggle */
     .view-toggle {
@@ -428,21 +469,27 @@
   </style>
 </head>
 <body>
+<!-- Debug Panel -->
+<div class="debug-panel" id="debugPanel">
+<div id="debugContent">Debug info will appear here...</div>
+<button onclick="toggleDebug()" style="margin-top: 5px; padding: 2px 5px; font-size: 10px;">Hide</button>
+</div>
 <!-- Login Screen -->
 <div class="login-container" id="loginScreen">
 <div class="login-card">
-<h2 style="text-align: center; margin-bottom: 30px;">🎾 My Tennis Scheduler</h2>
+<h2>🎾 My Tennis Scheduler</h2>
 <input class="form-control" id="email" placeholder="Email" type="email"/>
 <input class="form-control" id="password" placeholder="Password" type="password"/>
 <button class="btn" id="loginBtn" onclick="handleLogin()">Sign In</button>
 <button class="btn btn-secondary" onclick="showRegister()">Create Account</button>
+<button class="btn btn-info" onclick="toggleDebug()" style="font-size: 12px; padding: 5px 10px;">Debug Info</button>
 <div class="notification" id="loginNotification"></div>
 </div>
 </div>
 <!-- Register Screen -->
 <div class="login-container hidden" id="registerScreen">
 <div class="login-card">
-<h2 style="text-align: center; margin-bottom: 30px;">Join the Team</h2>
+<h2>Join the Team</h2>
 <input class="form-control" id="regFirstName" placeholder="First Name" type="text"/>
 <input class="form-control" id="regLastName" placeholder="Last Name" type="text"/>
 <input class="form-control" id="regEmail" placeholder="Email" type="email"/>
@@ -659,6 +706,9 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
     
+    // Enable debug logging
+    firebase.firestore.setLogLevel('debug');
+    
     // Global variables
     let events = [], users = [], locations = [];
     let currentUser = null;
@@ -668,10 +718,37 @@
     let isAdminView = false;
     let currentView = 'calendar'; // 'calendar' or 'list'
     let authStateProcessed = false; // Prevent duplicate processing
+    let debugMode = false;
+
+    // Debug functions
+    function debugLog(message, data = null) {
+      console.log(`[DEBUG] ${message}`, data || '');
+      if (debugMode) {
+        const debugContent = document.getElementById('debugContent');
+        if (debugContent) {
+          const timestamp = new Date().toLocaleTimeString();
+          debugContent.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+          if (data) {
+            debugContent.innerHTML += `<div style="margin-left: 10px; color: #ccc;">${JSON.stringify(data, null, 2)}</div>`;
+          }
+        }
+      }
+    }
+    
+    function toggleDebug() {
+      debugMode = !debugMode;
+      const debugPanel = document.getElementById('debugPanel');
+      if (debugMode) {
+        debugPanel.classList.add('show');
+        debugLog('Debug mode enabled');
+      } else {
+        debugPanel.classList.remove('show');
+      }
+    }
 
     // UI helpers
     function show(screenId) {
-      console.log(`Switching to screen: ${screenId}`);
+      debugLog(`Switching to screen: ${screenId}`);
       
       const screens = ['loginScreen', 'registerScreen', 'mainApp'];
       screens.forEach(id => {
@@ -683,7 +760,7 @@
         const targetElement = document.getElementById(screenId);
         if (targetElement) {
           targetElement.classList.remove('hidden');
-          console.log(`Successfully showed: ${screenId}`);
+          debugLog(`Successfully showed: ${screenId}`);
         }
       }
       
@@ -694,15 +771,19 @@
       const notifications = ['loginNotification', 'registerNotification'];
       notifications.forEach(id => {
         const element = document.getElementById(id);
-        if (element) element.textContent = '';
+        if (element) {
+          element.textContent = '';
+          element.className = 'notification';
+        }
       });
     }
     
-    function showNotification(elementId, message, isError = true) {
+    function showNotification(elementId, message, type = 'error') {
       const element = document.getElementById(elementId);
       if (element) {
         element.textContent = message;
-        element.className = isError ? 'notification' : 'notification success';
+        element.className = `notification ${type}`;
+        debugLog(`Notification (${type}): ${message}`);
       }
     }
     
@@ -727,7 +808,7 @@
     function toggleAdminView() {
       // Security check: Only allow admin users to toggle
       if (!userProfile || userProfile.role !== 'admin') {
-        console.error('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -780,57 +861,76 @@
       }
     }
 
-    // Authentication functions with proper error handling
+    // Enhanced Authentication functions with comprehensive error handling
     async function handleLogin() {
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       
-      console.log('Login attempt started');
+      debugLog('Login attempt started', { email: email });
       
       if (!email || !password) {
-        showNotification('loginNotification', 'Please enter both email and password');
+        showNotification('loginNotification', 'Please enter both email and password', 'error');
+        return;
+      }
+      
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        showNotification('loginNotification', 'Please enter a valid email address', 'error');
         return;
       }
       
       const loginBtn = document.getElementById('loginBtn');
       const originalText = loginBtn.textContent;
-      loginBtn.textContent = 'Signing in...';
+      loginBtn.innerHTML = '<span class="spinner"></span>Signing in...';
       loginBtn.disabled = true;
       
       try {
-        console.log('Attempting Firebase login...');
+        debugLog('Attempting Firebase login...');
+        
+        // Test Firebase connection first
+        await testFirebaseConnection();
+        
         const userCredential = await auth.signInWithEmailAndPassword(email, password);
         currentUser = userCredential.user;
-        console.log('Login successful:', currentUser.email);
+        debugLog('Login successful', { uid: currentUser.uid, email: currentUser.email });
+        
+        showNotification('loginNotification', 'Login successful! Loading your profile...', 'success');
         
         // The auth state listener will handle the rest
         
       } catch (error) {
-        console.error('Login error:', error);
+        debugLog('Login error', { code: error.code, message: error.message });
         let errorMessage = 'Login failed. Please try again.';
         
         switch(error.code) {
           case 'auth/user-not-found':
-            errorMessage = 'No account found with this email.';
+            errorMessage = 'No account found with this email. Please check your email or create a new account.';
             break;
           case 'auth/wrong-password':
-            errorMessage = 'Incorrect password.';
+            errorMessage = 'Incorrect password. Please try again.';
             break;
           case 'auth/invalid-email':
-            errorMessage = 'Invalid email address.';
+            errorMessage = 'Invalid email address format.';
             break;
           case 'auth/too-many-requests':
-            errorMessage = 'Too many failed attempts. Please try again later.';
+            errorMessage = 'Too many failed attempts. Please wait a few minutes before trying again.';
             break;
           case 'auth/network-request-failed':
-            errorMessage = 'Network error. Check your internet connection.';
+            errorMessage = 'Network error. Please check your internet connection and try again.';
             break;
           case 'auth/invalid-credential':
-            errorMessage = 'Invalid email or password.';
+          case 'auth/invalid-login-credentials':
+            errorMessage = 'Invalid email or password. Please check your credentials and try again.';
             break;
+          case 'auth/user-disabled':
+            errorMessage = 'This account has been disabled. Please contact support.';
+            break;
+          default:
+            errorMessage = `Login failed: ${error.message}`;
         }
         
-        showNotification('loginNotification', errorMessage);
+        showNotification('loginNotification', errorMessage, 'error');
         
         loginBtn.textContent = originalText;
         loginBtn.disabled = false;
@@ -844,105 +944,180 @@
       const password = document.getElementById('regPassword').value;
       const isAdmin = document.getElementById('regIsAdmin').checked;
       
-      console.log('Registration attempt started');
+      debugLog('Registration attempt started', { email: email, isAdmin: isAdmin });
       
+      // Validation
       if (!firstName || !lastName || !email || !password) {
-        showNotification('registerNotification', 'Please fill all fields');
+        showNotification('registerNotification', 'Please fill all fields', 'error');
+        return;
+      }
+      
+      if (firstName.length < 2 || lastName.length < 2) {
+        showNotification('registerNotification', 'First and last names must be at least 2 characters', 'error');
+        return;
+      }
+      
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        showNotification('registerNotification', 'Please enter a valid email address', 'error');
         return;
       }
       
       if (password.length < 6) {
-        showNotification('registerNotification', 'Password must be at least 6 characters');
+        showNotification('registerNotification', 'Password must be at least 6 characters', 'error');
         return;
       }
       
       const registerBtn = document.getElementById('registerBtn');
       const originalText = registerBtn.textContent;
-      registerBtn.textContent = 'Creating account...';
+      registerBtn.innerHTML = '<span class="spinner"></span>Creating account...';
       registerBtn.disabled = true;
       
       try {
-        console.log('Attempting Firebase registration...');
+        debugLog('Testing Firebase connection...');
+        await testFirebaseConnection();
+        
+        debugLog('Attempting Firebase registration...');
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         currentUser = userCredential.user;
+        debugLog('Firebase Auth user created', { uid: currentUser.uid, email: currentUser.email });
         
-        // Create user profile in Firestore
+        // Create user profile in Firestore with retry logic
         const newUserProfile = {
           firstName: firstName,
           lastName: lastName,
           email: email,
           role: isAdmin ? 'admin' : 'user',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          uid: currentUser.uid
         };
         
-        console.log('Creating user profile in Firestore...');
-        await db.collection('users').doc(currentUser.uid).set(newUserProfile);
+        debugLog('Creating user profile in Firestore...', newUserProfile);
+        
+        // Retry mechanism for Firestore write
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries) {
+          try {
+            await db.collection('users').doc(currentUser.uid).set(newUserProfile);
+            debugLog('User profile created successfully in Firestore');
+            break;
+          } catch (firestoreError) {
+            retryCount++;
+            debugLog(`Firestore write attempt ${retryCount} failed`, firestoreError);
+            
+            if (retryCount >= maxRetries) {
+              throw new Error(`Failed to create user profile after ${maxRetries} attempts: ${firestoreError.message}`);
+            }
+            
+            // Wait before retry
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          }
+        }
         
         // Set local userProfile
         userProfile = newUserProfile;
         
-        console.log('Registration successful:', currentUser.email);
-        showNotification('registerNotification', 'Account created successfully! Redirecting...', false);
+        debugLog('Registration successful', { uid: currentUser.uid, email: currentUser.email });
+        showNotification('registerNotification', 'Account created successfully! Redirecting...', 'success');
         
         // Small delay to show success message
         setTimeout(() => {
           showUserInterface();
-        }, 1000);
+        }, 1500);
         
       } catch (error) {
-        console.error('Registration error:', error);
+        debugLog('Registration error', { code: error.code, message: error.message });
         let errorMessage = 'Registration failed. Please try again.';
         
         switch(error.code) {
           case 'auth/email-already-in-use':
-            errorMessage = 'An account with this email already exists.';
+            errorMessage = 'An account with this email already exists. Please use a different email or try logging in.';
             break;
           case 'auth/invalid-email':
-            errorMessage = 'Invalid email address.';
+            errorMessage = 'Invalid email address format.';
             break;
           case 'auth/weak-password':
-            errorMessage = 'Password is too weak.';
+            errorMessage = 'Password is too weak. Please use at least 6 characters with a mix of letters and numbers.';
             break;
           case 'auth/network-request-failed':
-            errorMessage = 'Network error. Check your internet connection.';
+            errorMessage = 'Network error. Please check your internet connection and try again.';
             break;
+          case 'auth/operation-not-allowed':
+            errorMessage = 'Email/password accounts are not enabled. Please contact support.';
+            break;
+          default:
+            if (error.message.includes('Firestore')) {
+              errorMessage = `Account created but profile setup failed: ${error.message}. Please try logging in.`;
+            } else {
+              errorMessage = `Registration failed: ${error.message}`;
+            }
         }
         
-        showNotification('registerNotification', errorMessage);
+        showNotification('registerNotification', errorMessage, 'error');
         
         registerBtn.textContent = originalText;
         registerBtn.disabled = false;
       }
     }
     
+    // Test Firebase connection
+    async function testFirebaseConnection() {
+      try {
+        debugLog('Testing Firestore connection...');
+        await db.collection('_test').limit(1).get();
+        debugLog('Firestore connection successful');
+      } catch (error) {
+        debugLog('Firestore connection failed', error);
+        throw new Error('Cannot connect to Firebase. Please check your internet connection.');
+      }
+    }
+    
     async function loadUserProfile() {
       try {
-        console.log('Loading user profile for:', currentUser.uid);
-        const doc = await db.collection('users').doc(currentUser.uid).get();
+        debugLog('Loading user profile for:', currentUser.uid);
+        
+        // Add timeout to prevent hanging
+        const profilePromise = db.collection('users').doc(currentUser.uid).get();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Profile load timeout')), 10000)
+        );
+        
+        const doc = await Promise.race([profilePromise, timeoutPromise]);
         
         if (doc.exists) {
-          userProfile = doc.data();
-          console.log('User profile loaded:', userProfile);
+          userProfile = { id: currentUser.uid, ...doc.data() };
+          debugLog('User profile loaded', userProfile);
         } else {
-          console.log('No user profile found, creating default...');
+          debugLog('No user profile found, creating default...');
           // Create a default profile if none exists
           userProfile = {
+            id: currentUser.uid,
             firstName: 'User',
             lastName: '',
             email: currentUser.email,
             role: 'user',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            uid: currentUser.uid
           };
           
           await db.collection('users').doc(currentUser.uid).set(userProfile);
-          console.log('Default user profile created');
+          debugLog('Default user profile created');
         }
         
         showUserInterface();
         
       } catch (error) {
-        console.error('Error loading user profile:', error);
-        showNotification('loginNotification', 'Error loading user profile. Please try again.');
+        debugLog('Error loading user profile', error);
+        
+        if (error.message.includes('timeout')) {
+          showNotification('loginNotification', 'Profile loading timed out. Please check your connection and try again.', 'error');
+        } else if (error.code === 'permission-denied') {
+          showNotification('loginNotification', 'Permission denied. Please check Firebase security rules.', 'error');
+        } else {
+          showNotification('loginNotification', 'Error loading user profile. Please try again.', 'error');
+        }
         
         // Reset login button if we're on login screen
         const loginBtn = document.getElementById('loginBtn');
@@ -950,16 +1125,23 @@
           loginBtn.textContent = 'Sign In';
           loginBtn.disabled = false;
         }
+        
+        // Sign out the user since profile loading failed
+        try {
+          await auth.signOut();
+        } catch (signOutError) {
+          debugLog('Error signing out after profile load failure', signOutError);
+        }
       }
     }
     
     function showUserInterface() {
       if (!userProfile) {
-        console.error('No user profile available');
+        debugLog('No user profile available');
         return;
       }
       
-      console.log('Showing user interface for:', userProfile.role);
+      debugLog('Showing user interface for role:', userProfile.role);
       
       document.getElementById('userEmailDisplay').textContent = userProfile.email;
       
@@ -968,12 +1150,12 @@
       roleBadge.classList.remove('admin');
       
       if (userProfile.role === 'admin') {
-        console.log('Setting up admin interface');
+        debugLog('Setting up admin interface');
         roleBadge.textContent = 'Admin';
         roleBadge.classList.add('admin');
         document.getElementById('adminToggle').classList.remove('hidden');
       } else {
-        console.log('Setting up user interface');
+        debugLog('Setting up user interface');
         roleBadge.textContent = 'User';
         document.getElementById('adminToggle').classList.add('hidden');
       }
@@ -985,6 +1167,7 @@
     
     async function handleLogout() {
       try {
+        debugLog('Logging out...');
         await auth.signOut();
         // Reset all global variables
         currentUser = null;
@@ -996,9 +1179,9 @@
         authStateProcessed = false;
         
         show('loginScreen');
-        console.log('Logout successful');
+        debugLog('Logout successful');
       } catch (error) {
-        console.error('Logout error:', error);
+        debugLog('Logout error', error);
       }
     }
 
@@ -1213,45 +1396,56 @@
     
     async function loadAdminData() {
       try {
+        debugLog('Loading admin data...');
         await Promise.all([
           fetchAllEvents(),
           fetchAllUsers(),
           fetchAllLocations()
         ]);
+        debugLog('Admin data loaded successfully');
       } catch (error) {
-        console.error('Error loading admin data:', error);
+        debugLog('Error loading admin data', error);
       }
     }
     
     async function loadUserData() {
       try {
+        debugLog('Loading user data...');
         await Promise.all([
           fetchUserEvents(),
           fetchAllUsers(),
           fetchAllLocations()
         ]);
+        debugLog('User data loaded successfully');
       } catch (error) {
-        console.error('Error loading user data:', error);
+        debugLog('Error loading user data', error);
       }
     }
     
     // Events CRUD
     async function fetchAllEvents() {
       try {
+        debugLog('Fetching all events...');
         const snapshot = await db.collection('events').orderBy('date').get();
         events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderAdminEventTable();
-        console.log('All events fetched:', events.length);
+        debugLog('All events fetched:', events.length);
       } catch (error) {
-        console.error('Error fetching events:', error);
-        const snapshot = await db.collection('events').get();
-        events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderAdminEventTable();
+        debugLog('Error fetching events with orderBy, trying without...', error);
+        try {
+          const snapshot = await db.collection('events').get();
+          events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          renderAdminEventTable();
+          debugLog('Events fetched without orderBy:', events.length);
+        } catch (fallbackError) {
+          debugLog('Error fetching events (fallback)', fallbackError);
+        }
       }
     }
     
     async function fetchUserEvents() {
       try {
+        debugLog('Fetching user events...');
         const snapshot = await db.collection('events').get();
         events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if (currentView === 'calendar') {
@@ -1259,16 +1453,16 @@
         } else {
           renderEventList();
         }
-        console.log('User events fetched:', events.length);
+        debugLog('User events fetched:', events.length);
       } catch (error) {
-        console.error('Error fetching user events:', error);
+        debugLog('Error fetching user events', error);
       }
     }
     
     function showEventModal(event = null) {
       // Security check: Only allow admin users to access event modal
       if (!userProfile || userProfile.role !== 'admin') {
-        console.error('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1389,7 +1583,7 @@
     async function saveEvent() {
       // Security check: Only allow admin users to save events
       if (!userProfile || userProfile.role !== 'admin') {
-        console.error('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1438,7 +1632,7 @@
         }
         closeEventModal();
       } catch (error) {
-        console.error('Error saving event:', error);
+        debugLog('Error saving event', error);
         alert('Error saving event: ' + error.message);
       }
     }
@@ -1451,7 +1645,7 @@
     async function removeEvent(id) {
       // Security check: Only allow admin users to delete events
       if (!userProfile || userProfile.role !== 'admin') {
-        console.error('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1465,7 +1659,7 @@
             await fetchUserEvents();
           }
         } catch (error) {
-          console.error('Error deleting event:', error);
+          debugLog('Error deleting event', error);
           alert('Error deleting event: ' + error.message);
         }
       }
@@ -1513,21 +1707,22 @@
     // Users CRUD
     async function fetchAllUsers() {
       try {
+        debugLog('Fetching all users...');
         const snapshot = await db.collection('users').get();
         users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if (isAdminView) {
           renderUserTable();
         }
-        console.log('Users fetched:', users.length);
+        debugLog('Users fetched:', users.length);
       } catch (error) {
-        console.error('Error fetching users:', error);
+        debugLog('Error fetching users', error);
       }
     }
     
     function showUserModal(user = null) {
       // Security check: Only allow admin users to access user modal
       if (!userProfile || userProfile.role !== 'admin') {
-        console.error('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1561,7 +1756,7 @@
     async function saveUser() {
       // Security check: Only allow admin users to save users
       if (!userProfile || userProfile.role !== 'admin') {
-        console.error('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1593,7 +1788,7 @@
         await fetchAllUsers();
         closeUserModal();
       } catch (error) {
-        console.error('Error saving user:', error);
+        debugLog('Error saving user', error);
         alert('Error saving user: ' + error.message);
       }
     }
@@ -1606,7 +1801,7 @@
     async function removeUser(id) {
       // Security check: Only allow admin users to delete users
       if (!userProfile || userProfile.role !== 'admin') {
-        console.error('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1616,7 +1811,7 @@
           await db.collection('users').doc(id).delete();
           await fetchAllUsers();
         } catch (error) {
-          console.error('Error deleting user:', error);
+          debugLog('Error deleting user', error);
           alert('Error deleting user: ' + error.message);
         }
       }
@@ -1648,21 +1843,22 @@
     // Locations CRUD
     async function fetchAllLocations() {
       try {
+        debugLog('Fetching all locations...');
         const snapshot = await db.collection('locations').get();
         locations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if (isAdminView) {
           renderLocationTable();
         }
-        console.log('Locations fetched:', locations.length);
+        debugLog('Locations fetched:', locations.length);
       } catch (error) {
-        console.error('Error fetching locations:', error);
+        debugLog('Error fetching locations', error);
       }
     }
     
     function showLocationModal(location = null) {
       // Security check: Only allow admin users to access location modal
       if (!userProfile || userProfile.role !== 'admin') {
-        console.error('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1692,7 +1888,7 @@
     async function saveLocation() {
       // Security check: Only allow admin users to save locations
       if (!userProfile || userProfile.role !== 'admin') {
-        console.error('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1719,7 +1915,7 @@
         await fetchAllLocations();
         closeLocationModal();
       } catch (error) {
-        console.error('Error saving location:', error);
+        debugLog('Error saving location', error);
         alert('Error saving location: ' + error.message);
       }
     }
@@ -1732,7 +1928,7 @@
     async function removeLocation(id) {
       // Security check: Only allow admin users to delete locations
       if (!userProfile || userProfile.role !== 'admin') {
-        console.error('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1742,7 +1938,7 @@
           await db.collection('locations').doc(id).delete();
           await fetchAllLocations();
         } catch (error) {
-          console.error('Error deleting location:', error);
+          debugLog('Error deleting location', error);
           alert('Error deleting location: ' + error.message);
         }
       }
@@ -1769,25 +1965,37 @@
       });
     }
 
-    // FIXED: Auth state listener with proper initialization
+    // ENHANCED: Auth state listener with proper initialization and error handling
     auth.onAuthStateChanged(async (user) => {
-      console.log('Auth state changed:', user ? user.email : 'No user');
+      debugLog('Auth state changed', { 
+        user: user ? user.email : 'No user', 
+        authStateProcessed: authStateProcessed,
+        isInitialized: isInitialized 
+      });
       
       if (user && !authStateProcessed) {
         authStateProcessed = true;
         currentUser = user;
-        console.log('User authenticated, loading profile...');
-        await loadUserProfile();
+        debugLog('User authenticated, loading profile...');
+        
+        try {
+          await loadUserProfile();
+        } catch (error) {
+          debugLog('Failed to load user profile in auth state change', error);
+          authStateProcessed = false; // Reset so user can try again
+        }
+        
       } else if (!user && authStateProcessed) {
         // User logged out
-        console.log('User logged out, resetting state...');
+        debugLog('User logged out, resetting state...');
         currentUser = null;
         userProfile = null;
         authStateProcessed = false;
+        isInitialized = false;
         show('loginScreen');
       } else if (!user && !authStateProcessed) {
         // Initial load with no user
-        console.log('No authenticated user found');
+        debugLog('No authenticated user found on initial load');
         show('loginScreen');
       }
     });
@@ -1795,7 +2003,7 @@
     // User Profile Functions
     function showUserProfile() {
       if (!userProfile || !currentUser) {
-        console.error('No user profile available');
+        debugLog('No user profile available');
         return;
       }
       
@@ -1882,14 +2090,14 @@
         });
         
       } catch (error) {
-        console.error('Error loading user assignments:', error);
+        debugLog('Error loading user assignments', error);
         assignmentsContainer.innerHTML = '<p style="color: #dc3545;">Error loading assignments.</p>';
       }
     }
 
     // Add Enter key support for login and registration
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('DOM loaded, setting up event listeners');
+      debugLog('DOM loaded, setting up event listeners');
       
       // Login form enter key support
       const emailInput = document.getElementById('email');
@@ -1918,7 +2126,18 @@
         }
       });
       
-      console.log('Event listeners set up successfully');
+      debugLog('Event listeners set up successfully');
+      
+      // Test Firebase initialization
+      setTimeout(async () => {
+        try {
+          await testFirebaseConnection();
+          debugLog('Firebase initialization test passed');
+        } catch (error) {
+          debugLog('Firebase initialization test failed', error);
+          showNotification('loginNotification', 'Firebase connection issue detected. Please refresh the page.', 'error');
+        }
+      }, 2000);
     });
   </script>
 </body>
