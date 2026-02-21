@@ -34,6 +34,7 @@
     .notification.error { background: #f8d7da; border: 1px solid #f5c6cb; }
     .notification.success { color: #155724; background: #d4edda; border: 1px solid #c3e6cb; }
     .notification.info { color: #0c5460; background: #d1ecf1; border: 1px solid #bee5eb; }
+    .notification.warning { color: #856404; background: #fff3cd; border: 1px solid #ffeaa7; }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
     th { background: #f8f9fa; font-weight: bold; }
@@ -78,15 +79,35 @@
       position: fixed;
       bottom: 10px;
       right: 10px;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.9);
       color: white;
-      padding: 10px;
-      border-radius: 5px;
+      padding: 15px;
+      border-radius: 8px;
       font-size: 12px;
-      max-width: 300px;
+      max-width: 400px;
+      max-height: 300px;
+      overflow-y: auto;
       display: none;
+      z-index: 10000;
     }
     .debug-panel.show { display: block; }
+    .debug-panel h4 { margin: 0 0 10px 0; color: #ffc107; }
+    .debug-entry { margin: 5px 0; padding: 5px; border-left: 3px solid #667eea; }
+    .debug-error { border-left-color: #dc3545; }
+    .debug-success { border-left-color: #28a745; }
+    .debug-warning { border-left-color: #ffc107; }
+    
+    /* Domain error specific styles */
+    .domain-error {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      color: #856404;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .domain-error h3 { color: #856404; margin-top: 0; }
+    .domain-error code { background: #f8f9fa; padding: 2px 4px; border-radius: 3px; }
     
     /* View Toggle */
     .view-toggle {
@@ -471,13 +492,28 @@
 <body>
 <!-- Debug Panel -->
 <div class="debug-panel" id="debugPanel">
-<div id="debugContent">Debug info will appear here...</div>
-<button onclick="toggleDebug()" style="margin-top: 5px; padding: 2px 5px; font-size: 10px;">Hide</button>
+<h4>🔍 Debug Information</h4>
+<div id="debugContent">Initializing debug mode...</div>
+<button onclick="clearDebug()" style="margin: 5px 5px 0 0; padding: 3px 8px; font-size: 10px; background: #dc3545; color: white; border: none; border-radius: 3px;">Clear</button>
+<button onclick="toggleDebug()" style="margin: 5px 0 0 0; padding: 3px 8px; font-size: 10px; background: #6c757d; color: white; border: none; border-radius: 3px;">Hide</button>
 </div>
 <!-- Login Screen -->
 <div class="login-container" id="loginScreen">
 <div class="login-card">
 <h2>🎾 My Tennis Scheduler</h2>
+<!-- Domain Error Alert -->
+<div class="domain-error" id="domainError" style="display: none;">
+<h3>🚨 Domain Authorization Required</h3>
+<p>Your Firebase project is blocking requests from this domain. To fix this:</p>
+<ol>
+<li>Go to <a href="https://console.firebase.google.com/" target="_blank">Firebase Console</a></li>
+<li>Select your project: <code>my-tennis-scheduler</code></li>
+<li>Go to <strong>Authentication → Settings → Authorized domains</strong></li>
+<li>Add: <code id="currentDomain">elygarza-co.github.io</code></li>
+<li>Also check <strong>Google Cloud Console → APIs &amp; Services → Credentials</strong></li>
+</ol>
+<p><small>See the included instructions for detailed steps.</small></p>
+</div>
 <input class="form-control" id="email" placeholder="Email" type="email"/>
 <input class="form-control" id="password" placeholder="Password" type="password"/>
 <button class="btn" id="loginBtn" onclick="handleLogin()">Sign In</button>
@@ -719,18 +755,24 @@
     let currentView = 'calendar'; // 'calendar' or 'list'
     let authStateProcessed = false; // Prevent duplicate processing
     let debugMode = false;
+    let domainErrorDetected = false;
 
     // Debug functions
-    function debugLog(message, data = null) {
-      console.log(`[DEBUG] ${message}`, data || '');
+    function debugLog(message, data = null, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      console.log(`[DEBUG ${timestamp}] ${message}`, data || '');
+      
       if (debugMode) {
         const debugContent = document.getElementById('debugContent');
         if (debugContent) {
-          const timestamp = new Date().toLocaleTimeString();
-          debugContent.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+          const entry = document.createElement('div');
+          entry.className = `debug-entry debug-${type}`;
+          entry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
           if (data) {
-            debugContent.innerHTML += `<div style="margin-left: 10px; color: #ccc;">${JSON.stringify(data, null, 2)}</div>`;
+            entry.innerHTML += `<br><small style="color: #ccc;">${JSON.stringify(data, null, 2)}</small>`;
           }
+          debugContent.appendChild(entry);
+          debugContent.scrollTop = debugContent.scrollHeight;
         }
       }
     }
@@ -740,10 +782,51 @@
       const debugPanel = document.getElementById('debugPanel');
       if (debugMode) {
         debugPanel.classList.add('show');
-        debugLog('Debug mode enabled');
+        debugLog('Debug mode enabled', null, 'success');
+        
+        // Show current domain info
+        const currentDomain = window.location.hostname;
+        document.getElementById('currentDomain').textContent = currentDomain;
+        debugLog('Current domain', { hostname: currentDomain, href: window.location.href });
       } else {
         debugPanel.classList.remove('show');
       }
+    }
+    
+    function clearDebug() {
+      const debugContent = document.getElementById('debugContent');
+      if (debugContent) {
+        debugContent.innerHTML = 'Debug log cleared...';
+      }
+    }
+
+    // Domain error detection and handling
+    function checkDomainError(error) {
+      const errorMessage = error.message || error.toString();
+      const isDomainError = errorMessage.includes('requests-from-referer') || 
+                           errorMessage.includes('are-blocked') ||
+                           errorMessage.includes('API key not valid') ||
+                           errorMessage.includes('referer') ||
+                           error.code === 'auth/api-key-not-valid';
+      
+      if (isDomainError && !domainErrorDetected) {
+        domainErrorDetected = true;
+        debugLog('Domain authorization error detected', { error: errorMessage }, 'error');
+        
+        // Show domain error alert
+        const domainError = document.getElementById('domainError');
+        if (domainError) {
+          domainError.style.display = 'block';
+        }
+        
+        // Update current domain in the alert
+        const currentDomain = window.location.hostname;
+        document.getElementById('currentDomain').textContent = currentDomain;
+        
+        return true;
+      }
+      
+      return false;
     }
 
     // UI helpers
@@ -760,7 +843,7 @@
         const targetElement = document.getElementById(screenId);
         if (targetElement) {
           targetElement.classList.remove('hidden');
-          debugLog(`Successfully showed: ${screenId}`);
+          debugLog(`Successfully showed: ${screenId}`, null, 'success');
         }
       }
       
@@ -783,7 +866,7 @@
       if (element) {
         element.textContent = message;
         element.className = `notification ${type}`;
-        debugLog(`Notification (${type}): ${message}`);
+        debugLog(`Notification (${type}): ${message}`, null, type === 'error' ? 'error' : 'info');
       }
     }
     
@@ -808,7 +891,7 @@
     function toggleAdminView() {
       // Security check: Only allow admin users to toggle
       if (!userProfile || userProfile.role !== 'admin') {
-        debugLog('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin', null, 'warning');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -861,7 +944,7 @@
       }
     }
 
-    // Enhanced Authentication functions with comprehensive error handling
+    // Enhanced Authentication functions with domain error handling
     async function handleLogin() {
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
@@ -886,51 +969,59 @@
       loginBtn.disabled = true;
       
       try {
-        debugLog('Attempting Firebase login...');
-        
-        // Test Firebase connection first
+        debugLog('Testing Firebase connection...');
         await testFirebaseConnection();
         
+        debugLog('Attempting Firebase login...');
         const userCredential = await auth.signInWithEmailAndPassword(email, password);
         currentUser = userCredential.user;
-        debugLog('Login successful', { uid: currentUser.uid, email: currentUser.email });
+        debugLog('Login successful', { uid: currentUser.uid, email: currentUser.email }, 'success');
         
         showNotification('loginNotification', 'Login successful! Loading your profile...', 'success');
         
         // The auth state listener will handle the rest
         
       } catch (error) {
-        debugLog('Login error', { code: error.code, message: error.message });
-        let errorMessage = 'Login failed. Please try again.';
+        debugLog('Login error', { code: error.code, message: error.message }, 'error');
         
-        switch(error.code) {
-          case 'auth/user-not-found':
-            errorMessage = 'No account found with this email. Please check your email or create a new account.';
-            break;
-          case 'auth/wrong-password':
-            errorMessage = 'Incorrect password. Please try again.';
-            break;
-          case 'auth/invalid-email':
-            errorMessage = 'Invalid email address format.';
-            break;
-          case 'auth/too-many-requests':
-            errorMessage = 'Too many failed attempts. Please wait a few minutes before trying again.';
-            break;
-          case 'auth/network-request-failed':
-            errorMessage = 'Network error. Please check your internet connection and try again.';
-            break;
-          case 'auth/invalid-credential':
-          case 'auth/invalid-login-credentials':
-            errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-            break;
-          case 'auth/user-disabled':
-            errorMessage = 'This account has been disabled. Please contact support.';
-            break;
-          default:
-            errorMessage = `Login failed: ${error.message}`;
+        // Check for domain authorization errors
+        if (checkDomainError(error)) {
+          showNotification('loginNotification', 'Domain authorization required. Please see the instructions above.', 'warning');
+        } else {
+          let errorMessage = 'Login failed. Please try again.';
+          
+          switch(error.code) {
+            case 'auth/user-not-found':
+              errorMessage = 'No account found with this email. Please check your email or create a new account.';
+              break;
+            case 'auth/wrong-password':
+              errorMessage = 'Incorrect password. Please try again.';
+              break;
+            case 'auth/invalid-email':
+              errorMessage = 'Invalid email address format.';
+              break;
+            case 'auth/too-many-requests':
+              errorMessage = 'Too many failed attempts. Please wait a few minutes before trying again.';
+              break;
+            case 'auth/network-request-failed':
+              errorMessage = 'Network error. Please check your internet connection and try again.';
+              break;
+            case 'auth/invalid-credential':
+            case 'auth/invalid-login-credentials':
+              errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+              break;
+            case 'auth/user-disabled':
+              errorMessage = 'This account has been disabled. Please contact support.';
+              break;
+            case 'auth/api-key-not-valid':
+              errorMessage = 'Firebase API key issue. Please check domain authorization.';
+              break;
+            default:
+              errorMessage = `Login failed: ${error.message}`;
+          }
+          
+          showNotification('loginNotification', errorMessage, 'error');
         }
-        
-        showNotification('loginNotification', errorMessage, 'error');
         
         loginBtn.textContent = originalText;
         loginBtn.disabled = false;
@@ -980,7 +1071,7 @@
         debugLog('Attempting Firebase registration...');
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         currentUser = userCredential.user;
-        debugLog('Firebase Auth user created', { uid: currentUser.uid, email: currentUser.email });
+        debugLog('Firebase Auth user created', { uid: currentUser.uid, email: currentUser.email }, 'success');
         
         // Create user profile in Firestore with retry logic
         const newUserProfile = {
@@ -1001,11 +1092,16 @@
         while (retryCount < maxRetries) {
           try {
             await db.collection('users').doc(currentUser.uid).set(newUserProfile);
-            debugLog('User profile created successfully in Firestore');
+            debugLog('User profile created successfully in Firestore', null, 'success');
             break;
           } catch (firestoreError) {
             retryCount++;
-            debugLog(`Firestore write attempt ${retryCount} failed`, firestoreError);
+            debugLog(`Firestore write attempt ${retryCount} failed`, firestoreError, 'error');
+            
+            // Check for domain errors in Firestore operations
+            if (checkDomainError(firestoreError)) {
+              throw new Error('Domain authorization required for Firestore access');
+            }
             
             if (retryCount >= maxRetries) {
               throw new Error(`Failed to create user profile after ${maxRetries} attempts: ${firestoreError.message}`);
@@ -1019,7 +1115,7 @@
         // Set local userProfile
         userProfile = newUserProfile;
         
-        debugLog('Registration successful', { uid: currentUser.uid, email: currentUser.email });
+        debugLog('Registration successful', { uid: currentUser.uid, email: currentUser.email }, 'success');
         showNotification('registerNotification', 'Account created successfully! Redirecting...', 'success');
         
         // Small delay to show success message
@@ -1028,49 +1124,63 @@
         }, 1500);
         
       } catch (error) {
-        debugLog('Registration error', { code: error.code, message: error.message });
-        let errorMessage = 'Registration failed. Please try again.';
+        debugLog('Registration error', { code: error.code, message: error.message }, 'error');
         
-        switch(error.code) {
-          case 'auth/email-already-in-use':
-            errorMessage = 'An account with this email already exists. Please use a different email or try logging in.';
-            break;
-          case 'auth/invalid-email':
-            errorMessage = 'Invalid email address format.';
-            break;
-          case 'auth/weak-password':
-            errorMessage = 'Password is too weak. Please use at least 6 characters with a mix of letters and numbers.';
-            break;
-          case 'auth/network-request-failed':
-            errorMessage = 'Network error. Please check your internet connection and try again.';
-            break;
-          case 'auth/operation-not-allowed':
-            errorMessage = 'Email/password accounts are not enabled. Please contact support.';
-            break;
-          default:
-            if (error.message.includes('Firestore')) {
-              errorMessage = `Account created but profile setup failed: ${error.message}. Please try logging in.`;
-            } else {
-              errorMessage = `Registration failed: ${error.message}`;
-            }
+        // Check for domain authorization errors
+        if (checkDomainError(error)) {
+          showNotification('registerNotification', 'Domain authorization required. Please see the instructions above.', 'warning');
+        } else {
+          let errorMessage = 'Registration failed. Please try again.';
+          
+          switch(error.code) {
+            case 'auth/email-already-in-use':
+              errorMessage = 'An account with this email already exists. Please use a different email or try logging in.';
+              break;
+            case 'auth/invalid-email':
+              errorMessage = 'Invalid email address format.';
+              break;
+            case 'auth/weak-password':
+              errorMessage = 'Password is too weak. Please use at least 6 characters with a mix of letters and numbers.';
+              break;
+            case 'auth/network-request-failed':
+              errorMessage = 'Network error. Please check your internet connection and try again.';
+              break;
+            case 'auth/operation-not-allowed':
+              errorMessage = 'Email/password accounts are not enabled. Please contact support.';
+              break;
+            case 'auth/api-key-not-valid':
+              errorMessage = 'Firebase API key issue. Please check domain authorization.';
+              break;
+            default:
+              if (error.message.includes('Firestore') || error.message.includes('Domain authorization')) {
+                errorMessage = `Account created but profile setup failed: ${error.message}. Please try logging in.`;
+              } else {
+                errorMessage = `Registration failed: ${error.message}`;
+              }
+          }
+          
+          showNotification('registerNotification', errorMessage, 'error');
         }
-        
-        showNotification('registerNotification', errorMessage, 'error');
         
         registerBtn.textContent = originalText;
         registerBtn.disabled = false;
       }
     }
     
-    // Test Firebase connection
+    // Test Firebase connection with domain error detection
     async function testFirebaseConnection() {
       try {
         debugLog('Testing Firestore connection...');
         await db.collection('_test').limit(1).get();
-        debugLog('Firestore connection successful');
+        debugLog('Firestore connection successful', null, 'success');
       } catch (error) {
-        debugLog('Firestore connection failed', error);
-        throw new Error('Cannot connect to Firebase. Please check your internet connection.');
+        debugLog('Firestore connection failed', error, 'error');
+        
+        if (checkDomainError(error)) {
+          throw new Error('Domain authorization required for Firebase access');
+        } else {
+          throw new Error('Cannot connect to Firebase. Please check your internet connection.');
+        }
       }
     }
     
@@ -1088,7 +1198,7 @@
         
         if (doc.exists) {
           userProfile = { id: currentUser.uid, ...doc.data() };
-          debugLog('User profile loaded', userProfile);
+          debugLog('User profile loaded', userProfile, 'success');
         } else {
           debugLog('No user profile found, creating default...');
           // Create a default profile if none exists
@@ -1103,15 +1213,18 @@
           };
           
           await db.collection('users').doc(currentUser.uid).set(userProfile);
-          debugLog('Default user profile created');
+          debugLog('Default user profile created', null, 'success');
         }
         
         showUserInterface();
         
       } catch (error) {
-        debugLog('Error loading user profile', error);
+        debugLog('Error loading user profile', error, 'error');
         
-        if (error.message.includes('timeout')) {
+        // Check for domain errors
+        if (checkDomainError(error)) {
+          showNotification('loginNotification', 'Domain authorization required. Please check Firebase settings.', 'warning');
+        } else if (error.message.includes('timeout')) {
           showNotification('loginNotification', 'Profile loading timed out. Please check your connection and try again.', 'error');
         } else if (error.code === 'permission-denied') {
           showNotification('loginNotification', 'Permission denied. Please check Firebase security rules.', 'error');
@@ -1130,18 +1243,18 @@
         try {
           await auth.signOut();
         } catch (signOutError) {
-          debugLog('Error signing out after profile load failure', signOutError);
+          debugLog('Error signing out after profile load failure', signOutError, 'error');
         }
       }
     }
     
     function showUserInterface() {
       if (!userProfile) {
-        debugLog('No user profile available');
+        debugLog('No user profile available', null, 'error');
         return;
       }
       
-      debugLog('Showing user interface for role:', userProfile.role);
+      debugLog('Showing user interface for role:', userProfile.role, 'success');
       
       document.getElementById('userEmailDisplay').textContent = userProfile.email;
       
@@ -1177,11 +1290,18 @@
         locations = [];
         isAdminView = false;
         authStateProcessed = false;
+        domainErrorDetected = false;
+        
+        // Hide domain error alert
+        const domainError = document.getElementById('domainError');
+        if (domainError) {
+          domainError.style.display = 'none';
+        }
         
         show('loginScreen');
-        debugLog('Logout successful');
+        debugLog('Logout successful', null, 'success');
       } catch (error) {
-        debugLog('Logout error', error);
+        debugLog('Logout error', error, 'error');
       }
     }
 
@@ -1402,9 +1522,10 @@
           fetchAllUsers(),
           fetchAllLocations()
         ]);
-        debugLog('Admin data loaded successfully');
+        debugLog('Admin data loaded successfully', null, 'success');
       } catch (error) {
-        debugLog('Error loading admin data', error);
+        debugLog('Error loading admin data', error, 'error');
+        checkDomainError(error);
       }
     }
     
@@ -1416,9 +1537,10 @@
           fetchAllUsers(),
           fetchAllLocations()
         ]);
-        debugLog('User data loaded successfully');
+        debugLog('User data loaded successfully', null, 'success');
       } catch (error) {
-        debugLog('Error loading user data', error);
+        debugLog('Error loading user data', error, 'error');
+        checkDomainError(error);
       }
     }
     
@@ -1429,16 +1551,17 @@
         const snapshot = await db.collection('events').orderBy('date').get();
         events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderAdminEventTable();
-        debugLog('All events fetched:', events.length);
+        debugLog('All events fetched:', events.length, 'success');
       } catch (error) {
-        debugLog('Error fetching events with orderBy, trying without...', error);
+        debugLog('Error fetching events with orderBy, trying without...', error, 'warning');
         try {
           const snapshot = await db.collection('events').get();
           events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           renderAdminEventTable();
-          debugLog('Events fetched without orderBy:', events.length);
+          debugLog('Events fetched without orderBy:', events.length, 'success');
         } catch (fallbackError) {
-          debugLog('Error fetching events (fallback)', fallbackError);
+          debugLog('Error fetching events (fallback)', fallbackError, 'error');
+          checkDomainError(fallbackError);
         }
       }
     }
@@ -1453,16 +1576,17 @@
         } else {
           renderEventList();
         }
-        debugLog('User events fetched:', events.length);
+        debugLog('User events fetched:', events.length, 'success');
       } catch (error) {
-        debugLog('Error fetching user events', error);
+        debugLog('Error fetching user events', error, 'error');
+        checkDomainError(error);
       }
     }
     
     function showEventModal(event = null) {
       // Security check: Only allow admin users to access event modal
       if (!userProfile || userProfile.role !== 'admin') {
-        debugLog('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin', null, 'warning');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1583,7 +1707,7 @@
     async function saveEvent() {
       // Security check: Only allow admin users to save events
       if (!userProfile || userProfile.role !== 'admin') {
-        debugLog('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin', null, 'warning');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1632,8 +1756,12 @@
         }
         closeEventModal();
       } catch (error) {
-        debugLog('Error saving event', error);
-        alert('Error saving event: ' + error.message);
+        debugLog('Error saving event', error, 'error');
+        if (checkDomainError(error)) {
+          alert('Domain authorization required. Please check Firebase settings.');
+        } else {
+          alert('Error saving event: ' + error.message);
+        }
       }
     }
     
@@ -1645,7 +1773,7 @@
     async function removeEvent(id) {
       // Security check: Only allow admin users to delete events
       if (!userProfile || userProfile.role !== 'admin') {
-        debugLog('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin', null, 'warning');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1659,8 +1787,12 @@
             await fetchUserEvents();
           }
         } catch (error) {
-          debugLog('Error deleting event', error);
-          alert('Error deleting event: ' + error.message);
+          debugLog('Error deleting event', error, 'error');
+          if (checkDomainError(error)) {
+            alert('Domain authorization required. Please check Firebase settings.');
+          } else {
+            alert('Error deleting event: ' + error.message);
+          }
         }
       }
     }
@@ -1713,16 +1845,17 @@
         if (isAdminView) {
           renderUserTable();
         }
-        debugLog('Users fetched:', users.length);
+        debugLog('Users fetched:', users.length, 'success');
       } catch (error) {
-        debugLog('Error fetching users', error);
+        debugLog('Error fetching users', error, 'error');
+        checkDomainError(error);
       }
     }
     
     function showUserModal(user = null) {
       // Security check: Only allow admin users to access user modal
       if (!userProfile || userProfile.role !== 'admin') {
-        debugLog('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin', null, 'warning');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1756,7 +1889,7 @@
     async function saveUser() {
       // Security check: Only allow admin users to save users
       if (!userProfile || userProfile.role !== 'admin') {
-        debugLog('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin', null, 'warning');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1788,8 +1921,12 @@
         await fetchAllUsers();
         closeUserModal();
       } catch (error) {
-        debugLog('Error saving user', error);
-        alert('Error saving user: ' + error.message);
+        debugLog('Error saving user', error, 'error');
+        if (checkDomainError(error)) {
+          alert('Domain authorization required. Please check Firebase settings.');
+        } else {
+          alert('Error saving user: ' + error.message);
+        }
       }
     }
     
@@ -1801,7 +1938,7 @@
     async function removeUser(id) {
       // Security check: Only allow admin users to delete users
       if (!userProfile || userProfile.role !== 'admin') {
-        debugLog('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin', null, 'warning');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1811,8 +1948,12 @@
           await db.collection('users').doc(id).delete();
           await fetchAllUsers();
         } catch (error) {
-          debugLog('Error deleting user', error);
-          alert('Error deleting user: ' + error.message);
+          debugLog('Error deleting user', error, 'error');
+          if (checkDomainError(error)) {
+            alert('Domain authorization required. Please check Firebase settings.');
+          } else {
+            alert('Error deleting user: ' + error.message);
+          }
         }
       }
     }
@@ -1849,16 +1990,17 @@
         if (isAdminView) {
           renderLocationTable();
         }
-        debugLog('Locations fetched:', locations.length);
+        debugLog('Locations fetched:', locations.length, 'success');
       } catch (error) {
-        debugLog('Error fetching locations', error);
+        debugLog('Error fetching locations', error, 'error');
+        checkDomainError(error);
       }
     }
     
     function showLocationModal(location = null) {
       // Security check: Only allow admin users to access location modal
       if (!userProfile || userProfile.role !== 'admin') {
-        debugLog('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin', null, 'warning');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1888,7 +2030,7 @@
     async function saveLocation() {
       // Security check: Only allow admin users to save locations
       if (!userProfile || userProfile.role !== 'admin') {
-        debugLog('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin', null, 'warning');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1915,8 +2057,12 @@
         await fetchAllLocations();
         closeLocationModal();
       } catch (error) {
-        debugLog('Error saving location', error);
-        alert('Error saving location: ' + error.message);
+        debugLog('Error saving location', error, 'error');
+        if (checkDomainError(error)) {
+          alert('Domain authorization required. Please check Firebase settings.');
+        } else {
+          alert('Error saving location: ' + error.message);
+        }
       }
     }
     
@@ -1928,7 +2074,7 @@
     async function removeLocation(id) {
       // Security check: Only allow admin users to delete locations
       if (!userProfile || userProfile.role !== 'admin') {
-        debugLog('Access denied: User is not an admin');
+        debugLog('Access denied: User is not an admin', null, 'warning');
         alert('Access denied: You do not have admin privileges.');
         return;
       }
@@ -1938,8 +2084,12 @@
           await db.collection('locations').doc(id).delete();
           await fetchAllLocations();
         } catch (error) {
-          debugLog('Error deleting location', error);
-          alert('Error deleting location: ' + error.message);
+          debugLog('Error deleting location', error, 'error');
+          if (checkDomainError(error)) {
+            alert('Domain authorization required. Please check Firebase settings.');
+          } else {
+            alert('Error deleting location: ' + error.message);
+          }
         }
       }
     }
@@ -1965,7 +2115,7 @@
       });
     }
 
-    // ENHANCED: Auth state listener with proper initialization and error handling
+    // ENHANCED: Auth state listener with domain error handling
     auth.onAuthStateChanged(async (user) => {
       debugLog('Auth state changed', { 
         user: user ? user.email : 'No user', 
@@ -1981,7 +2131,8 @@
         try {
           await loadUserProfile();
         } catch (error) {
-          debugLog('Failed to load user profile in auth state change', error);
+          debugLog('Failed to load user profile in auth state change', error, 'error');
+          checkDomainError(error);
           authStateProcessed = false; // Reset so user can try again
         }
         
@@ -1992,6 +2143,7 @@
         userProfile = null;
         authStateProcessed = false;
         isInitialized = false;
+        domainErrorDetected = false;
         show('loginScreen');
       } else if (!user && !authStateProcessed) {
         // Initial load with no user
@@ -2003,7 +2155,7 @@
     // User Profile Functions
     function showUserProfile() {
       if (!userProfile || !currentUser) {
-        debugLog('No user profile available');
+        debugLog('No user profile available', null, 'error');
         return;
       }
       
@@ -2090,14 +2242,19 @@
         });
         
       } catch (error) {
-        debugLog('Error loading user assignments', error);
+        debugLog('Error loading user assignments', error, 'error');
         assignmentsContainer.innerHTML = '<p style="color: #dc3545;">Error loading assignments.</p>';
+        checkDomainError(error);
       }
     }
 
     // Add Enter key support for login and registration
     document.addEventListener('DOMContentLoaded', function() {
       debugLog('DOM loaded, setting up event listeners');
+      
+      // Display current domain in the error alert
+      const currentDomain = window.location.hostname;
+      document.getElementById('currentDomain').textContent = currentDomain;
       
       // Login form enter key support
       const emailInput = document.getElementById('email');
@@ -2126,16 +2283,20 @@
         }
       });
       
-      debugLog('Event listeners set up successfully');
+      debugLog('Event listeners set up successfully', null, 'success');
       
       // Test Firebase initialization
       setTimeout(async () => {
         try {
           await testFirebaseConnection();
-          debugLog('Firebase initialization test passed');
+          debugLog('Firebase initialization test passed', null, 'success');
         } catch (error) {
-          debugLog('Firebase initialization test failed', error);
-          showNotification('loginNotification', 'Firebase connection issue detected. Please refresh the page.', 'error');
+          debugLog('Firebase initialization test failed', error, 'error');
+          if (checkDomainError(error)) {
+            showNotification('loginNotification', 'Domain authorization required. Please see the instructions above.', 'warning');
+          } else {
+            showNotification('loginNotification', 'Firebase connection issue detected. Please refresh the page.', 'error');
+          }
         }
       }, 2000);
     });
